@@ -1,0 +1,41 @@
+% Fichier principal du rapport
+\documentclass[a4paper,11pt]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\title{Combinaison de classifieurs et méthodes d'ensemble}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+% Chapitre 0 : Introduction
+\include{introduction_generale/introduction}
+% Chapitre 1 : Combinaison de classifieurs
+\include{chapitre1/combinaison_classifieurs}
+% Chapitre 2 : Combinaison de classifieurs
+\include{chapitre2/interpretabilite}
+% Chapitre 3 : Combinaison de classifieurs
+\include{chapitre3/combinaison_interpretabilite}
+% Conclusion
+\include{conclusion/conclusion}
+
+
+
+\bibliographystyle{plain}
+\bibliography{bibliographie}
+
+\end{document}
+

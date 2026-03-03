@@ -1,0 +1,627 @@
+% Chapitre 2 : Combinaison de classifieurs
+\chapter{Combinaison de classifieurs}
+
+\section*{Introduction}
+
+L'évolution de l'apprentissage automatique a franchi une étape décisive avec l'émergence des
+systèmes de classifieurs multiples (\emph{Multiple Classifier Systems -- MCS}), plus communément
+désignés sous le terme d'apprentissage d'ensemble~\cite{luisfredgs_mcs_intro,wikip_ensemble_learning,heutte_combi_classif}. Cette approche repose sur un paradigme
+fondamental : la combinaison stratégique de plusieurs modèles de prédiction pour pallier les
+insuffisances inhérentes à tout classifieur unique.
+
+Historiquement, la recherche en intelligence artificielle s'est concentrée sur l'optimisation
+d'algorithmes individuels. Cependant, l'expérience a démontré qu'un modèle unique, aussi sophistiqué soit-il, est souvent limité par ses propres biais structurels et sa sensibilité au bruit des
+données. L'apprentissage d'ensemble propose de substituer au modèle solitaire un comité de
+décideurs dont la sagesse collective surpasse les capacités individuelles.
+
+Cette section propose une exploration de la combinaison de classifieurs, structurée autour des
+fondements théoriques, des typologies méthodologiques et des considérations architecturales
+qui définissent ce domaine. L'analyse s'attache à montrer comment la diversité des modèles et la
+rigueur de leur agrégation permettent d'atteindre des niveaux de performance et de robustesse
+inaccessibles aux approches classiques.
+
+\section{Définition et phases de la combinaison de classifieurs}
+
+La \textbf{combinaison de classifieurs} est définie comme le processus d'intégration des sorties de
+plusieurs modèles d'apprentissage afin de générer une décision globale plus fiable et précise.
+Un système multi-classifieurs est structurellement composé d'un ensemble d'apprenants de
+base, souvent qualifiés d'\emph{apprenants faibles} (\emph{weak learners}) lorsqu'ils sont pris isolément,
+et d'un mécanisme de fusion qui orchestre leurs réponses.
+
+Le cycle de vie d'un tel système se décompose généralement en trois phases critiques :
+
+\begin{enumerate}
+  \item \textbf{Génération de l'ensemble} : cette phase initiale consiste à produire un pool de modèles
+  de base. L'objectif est de créer des modèles qui ne sont pas seulement performants,
+  mais surtout complémentaires. La complémentarité est assurée par l'introduction de
+  diversité, que ce soit par l'utilisation de différents sous-ensembles de données, de
+  paramètres variés pour un même algorithme, ou de familles d'algorithmes distinctes.
+
+  \item \textbf{Sélection ou élagage (\emph{pruning})} : une fois le pool généré, il peut être nécessaire de
+  réduire la taille de l'ensemble. L'élagage vise à éliminer les modèles redondants ou ceux
+  dont la performance dégrade la décision collective. Cette étape permet non seulement
+  d'améliorer la précision globale mais aussi de réduire les coûts computationnels lors de
+  l'inférence.
+
+  \item \textbf{Combinaison ou fusion} : la phase finale consiste à fusionner les prédictions des
+  modèles sélectionnés pour obtenir la réponse ultime. Le choix de la fonction de
+  combinaison dépend crucialement du type d'information fournie par les classifieurs de
+  base (niveau d'information en sortie).
+\end{enumerate}
+
+\subsection{Nature des sorties et niveaux d'information}
+
+L'efficacité de la combinaison dépend de la richesse des informations transmises par les
+modèles individuels. On distingue classiquement trois niveaux de sortie :
+
+\begin{itemize}
+  \item \textbf{Niveau \og Classe \fg{} (hard output)} : le classifieur fournit uniquement l'étiquette de la
+  classe prédite. C'est l'information la plus élémentaire, où chaque modèle agit comme un
+  votant binaire.
+
+  \item \textbf{Niveau \og Rang \fg{}} : le classifieur produit une liste ordonnée des classes possibles, de la
+  plus probable à la moins probable. Ce format est particulièrement utile lorsque la classe
+  réelle ne figure pas au premier rang mais reste parmi les premières propositions.
+
+  \item \textbf{Niveau \og Mesure \fg{} (soft output)} : c'est le niveau le plus riche. Le classifieur associe à
+  chaque classe une valeur numérique, telle qu'une probabilité ou un score de confiance.
+  Cette mesure quantifie l'incertitude du modèle et permet des fusions pondérées beaucoup
+  plus fines.
+\end{itemize}
+
+Le tableau suivant présente une comparaison structurelle de ces types d'informations en sortie.
+
+\begin{table}[h]
+  \centering
+  \caption{Comparaison des niveaux d'information en sortie des classifieurs}
+    \small
+    \begin{tabularx}{\textwidth}{lXlX}
+    \toprule
+    Type de sortie & Information contenue & Complexité de fusion & Cas d'utilisation typique \\
+    \midrule
+    Classe   & Étiquette discrète uniquement      & Faible  & Vote majoritaire simple \\
+    Rang     & Préférences relatives ordonnées    & Moyenne & Méthode de Borda, systèmes de recommandation \\
+    Mesure   & Probabilités, scores de confiance  & Élevée  & Moyenne pondérée, stacking, modèles bayésiens \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Motivations théoriques et justifications statistiques}
+
+La supériorité des systèmes multi-classifieurs n'est pas une simple observation empirique ; elle
+s'appuie sur des piliers théoriques robustes, notamment le théorème du jury de Condorcet et
+la décomposition biais--variance~\cite{turing_ensemble_learning,analyticsvidhya_ensemble_learning,gfg_ensemble_learning}.
+
+\subsection{Théorème du jury de Condorcet}
+
+Formulé à l'origine dans le contexte des sciences sociales, ce théorème constitue une base
+théorique fondamentale pour l'apprentissage d'ensemble~\cite{wikip_jury_theorem,cmu_ensembles_pdf}. Il postule que si un groupe
+d'individus doit prendre une décision binaire (par exemple, classer un objet comme $A$ ou $B$)
+et que chaque individu a une probabilité $p$ supérieure à $0{,}5$ de choisir la bonne réponse,
+alors la probabilité que la décision de la majorité soit correcte augmente avec le nombre
+d'individus.
+
+Mathématiquement, si $L$ est le nombre de classifieurs indépendants et $p$ leur précision
+individuelle, la probabilité $P$ que l'ensemble prenne la bonne décision par vote majoritaire
+tend vers $1$ lorsque $L$ tend vers l'infini. À l'inverse, si $p < 0{,}5$, l'ajout de classifieurs réduit
+la performance globale. Cette démonstration justifie l'utilisation d'\og apprenants faibles \fg{}
+pour construire des systèmes puissants, à condition qu'ils soient plus performants qu'un tirage
+aléatoire et qu'ils soient suffisamment indépendants.
+
+\subsection{Décomposition biais--variance}
+
+D'un point de vue statistique, l'erreur de généralisation d'un modèle d'apprentissage peut être
+décomposée en trois composantes : le biais au carré, la variance et l'erreur irréductible (bruit)~\cite{wikip_bias_variance,utd_ensemble_lecture}.
+La formule de l'erreur quadratique moyenne (MSE) est :
+
+\begin{equation}
+  \mathbb{E}\bigl[(y - \hat{f}(x))^2\bigr]
+  = \operatorname{Bias}\bigl[\hat{f}(x)\bigr]^2
+  + \operatorname{Var}\bigl[\hat{f}(x)\bigr]
+  + \sigma^2,
+\end{equation}
+
+où $\sigma^2$ représente le bruit inhérent aux données.
+
+\begin{itemize}
+  \item Le \textbf{biais} mesure l'écart entre la prédiction moyenne du modèle et la valeur réelle. Un biais
+  élevé est le signe d'un modèle trop simpliste qui ne capture pas la complexité des
+  données (sous-apprentissage, \emph{underfitting}).
+
+  \item La \textbf{variance} mesure la dispersion des prédictions pour différents jeux de données
+  d'apprentissage. Une variance élevée indique que le modèle est trop sensible aux
+  fluctuations et au bruit des données (sur-apprentissage, \emph{overfitting}).
+\end{itemize}
+
+L'apprentissage d'ensemble permet de naviguer dans ce compromis biais--variance. Les
+méthodes de type bagging agissent principalement en réduisant la variance par la moyenne de
+modèles complexes, tandis que les méthodes de boosting se concentrent sur la réduction du
+biais en agrégeant itérativement des modèles simples pour corriger leurs erreurs systématiques.
+
+\subsection{Théorie unifiée de la diversité dans les ensembles}
+
+Une contribution th{\'e}orique importante aux m{\'e}thodes d'ensemble consiste {\`a} faire appara{\^i}tre
+explicitement la diversit{\'e} comme composante de la d{\'e}composition de la perte. Pour une vaste
+famille de fonctions de perte (notamment les divergences de Bregman, qui incluent l'erreur
+quadratique moyenne et l'entropie crois{\'e}e), on peut montrer que la perte de l'ensemble s'exprime
+comme la moyenne des pertes individuelles diminu{\'e}e d'un terme de diversit{\'e}~\cite{kuncheva_diversity_ensemble}.
+
+Dans le cas particulier de l'erreur quadratique moyenne, cette id{\'e}e est captur{\'e}e par
+l'identit{\'e} de Krogh et Vedelsby~\cite{krogh_vedelsby_ambiguity}. Pour un ensemble de $M$ mod{\`e}les
+dont les pr{\'e}dictions sont $q_1(x),\dots,q_M(x)$ pour une entr{\'e}e $x$ et une cible $y$, on pose
+\[
+  \bar{q}(x) = \frac{1}{M} \sum_{i=1}^M q_i(x).
+\]
+L'identit{\'e} s'\'ecrit alors :
+\begin{equation}
+  \bigl(\bar{q}(x) - y\bigr)^2
+  = \frac{1}{M} \sum_{i=1}^M \bigl(q_i(x) - y\bigr)^2
+    - \frac{1}{M} \sum_{i=1}^M \bigl(q_i(x) - \bar{q}(x)\bigr)^2.
+\end{equation}
+
+Le membre de gauche est l'erreur quadratique de l'ensemble, le premier terme {\`a} droite la moyenne
+des erreurs quadratiques individuelles, et le second terme (souvent appel{\'e} \og ambigu{\"i}t{\'e} \fg{} ou
+\og diversit{\'e} \fg{}) mesure le degr{\'e} de d{\'e}saccord entre les pr{\'e}dictions des mod{\`e}les.
+L'identit{\'e} montre que, toutes choses {\'e}gales par ailleurs, l'erreur de l'ensemble diminue lorsque
+la diversit{\'e} augmente.
+
+\paragraph{D{\'e}monstration de l'identit{\'e} de Krogh et Vedelsby.}
+Pour simplifier les notations, on note $\bar{q} = \bar{q}(x)$ et $q_i = q_i(x)$.
+
+\emph{(i) D{\'e}veloppement de l'erreur de l'ensemble.}
+\[
+  (\bar{q} - y)^2 = \bar{q}^2 - 2 \bar{q} y + y^2.
+\]
+
+\emph{(ii) D{\'e}veloppement de la moyenne des erreurs individuelles.}
+\begin{align}
+  \frac{1}{M} \sum_{i=1}^M (q_i - y)^2
+  &= \frac{1}{M} \sum_{i=1}^M (q_i^2 - 2 q_i y + y^2) \\
+  &= \frac{1}{M} \sum_{i=1}^M q_i^2 - 2 y \left( \frac{1}{M} \sum_{i=1}^M q_i \right) + y^2 \\
+  &= \frac{1}{M} \sum_{i=1}^M q_i^2 - 2 y \bar{q} + y^2.
+\end{align}
+
+\emph{(iii) D{\'e}veloppement du terme de diversit{\'e}.}
+\begin{align}
+  \frac{1}{M} \sum_{i=1}^M (q_i - \bar{q})^2
+  &= \frac{1}{M} \sum_{i=1}^M (q_i^2 - 2 q_i \bar{q} + \bar{q}^2) \\
+  &= \frac{1}{M} \sum_{i=1}^M q_i^2 - 2 \bar{q} \left( \frac{1}{M} \sum_{i=1}^M q_i \right) + \bar{q}^2 \\
+  &= \frac{1}{M} \sum_{i=1}^M q_i^2 - 2 \bar{q}^2 + \bar{q}^2 \\
+  &= \frac{1}{M} \sum_{i=1}^M q_i^2 - \bar{q}^2.
+\end{align}
+
+\emph{(iv) Soustraction des deux termes.}
+\begin{align}
+  \frac{1}{M} \sum_{i=1}^M (q_i - y)^2
+  - \frac{1}{M} \sum_{i=1}^M (q_i - \bar{q})^2
+  &= \left( \frac{1}{M} \sum_{i=1}^M q_i^2 - 2 y \bar{q} + y^2 \right)
+   - \left( \frac{1}{M} \sum_{i=1}^M q_i^2 - \bar{q}^2 \right) \\
+  &= - 2 y \bar{q} + y^2 + \bar{q}^2 \\
+  &= (\bar{q} - y)^2.
+\end{align}
+
+On retrouve bien l'identit{\'e} annonc{\'e}e. Comme le terme de diversit{\'e} est une somme de carr{\'e}s,
+il est toujours positif ou nul. L'erreur de l'ensemble est donc toujours inf{\'e}rieure ou {\'e}gale
+{\`a} la moyenne des erreurs individuelles, avec {\'e}galit{\'e} lorsque tous les mod{\`e}les pr{\'e}disent la m{\^e}me
+valeur (diversit{\'e} nulle).
+
+Cette identit{\'e} justifie l'importance
+de promouvoir la diversit{\'e} dans les ensembles (via le bagging, le boosting, la randomisation
+des architectures, etc.) et ouvre sur des g{\'e}n{\'e}ralisations {\`a} d'autres pertes au moyen des divergences
+de Bregman~\cite{kuncheva_diversity_ensemble}.
+
+\subsection{Les problèmes de Dietterich}
+
+Thomas Dietterich a identifié trois raisons fondamentales expliquant pourquoi un ensemble
+peut surpasser un modèle unique :
+
+\begin{enumerate}
+  \item \textbf{Le problème statistique} : lorsque le volume de données est faible par rapport à la taille
+  de l'espace des hypothèses, l'algorithme peut trouver plusieurs modèles qui s'ajustent
+  parfaitement aux données d'entraînement. En les combinant, l'ensemble réduit le risque
+  de choisir par erreur un modèle qui généralise mal.
+
+  \item \textbf{Le problème computationnel} : de nombreux algorithmes (comme les réseaux de
+  neurones) utilisent des heuristiques de recherche locale qui peuvent rester bloquées
+  dans des optima locaux. Un ensemble effectuant plusieurs recherches à partir de points
+  de départ différents a plus de chances de trouver une meilleure approximation globale.
+
+  \item \textbf{Le problème de représentation} : parfois, la véritable fonction cible ne peut être
+  représentée par aucun des modèles de l'espace d'hypothèses choisi. La combinaison de
+  plusieurs modèles permet d'étendre cet espace et d'approcher des fonctions plus
+  complexes.
+\end{enumerate}
+
+\section{Typologies des méthodes d'ensemble}
+
+Les méthodes d'ensemble se divisent principalement en approches parallèles (bagging),
+séquentielles (boosting) et hiérarchiques (stacking)~\cite{mlm_bagging_vs_boosting_vs_stacking,younas_bagging_boosting_stacking,nsacademy_what_is_ensemble}.
+
+\subsection{Bagging (bootstrap aggregating)}
+
+Le bagging (pour \emph{bootstrap aggregating}) vise à réduire la variance en entraînant plusieurs
+modèles indépendants en parallèle sur des échantillons de données légèrement différents.
+Introduit par Breiman~\cite{breiman_bagging_1996} et largement diffusé ensuite
+~\cite{ibm_bagging,greatlearning_bagging_boosting,analyticsvidhya_ensemble_learning}, il est
+particulièrement efficace pour des apprenants de base instables comme les arbres de décision
+profonds.
+
+\paragraph{Définition.}
+À partir d'un ensemble d'apprentissage $D = \{(x_j, y_j)\}_{j=1}^n$, le bagging construit $m$
+échantillons bootstrap $D_i$ par tirage aléatoire avec remise, chacun de taille $n$. Sur chaque
+$D_i$, on entraîne un modèle de base $\hat{f}_i$ (\emph{base learner}). À la prédiction, les sorties
+des $m$ modèles sont agrégées :
+\begin{itemize}
+  \item en régression, par moyenne
+  \[
+    \hat{f}(x) = \frac{1}{m} \sum_{i=1}^m \hat{f}_i(x) ;
+  \]
+  \item en classification, par vote majoritaire
+  \[
+    \hat{y}(x) = \arg\max_k \sum_{i=1}^m \mathbb{I}\bigl(\hat{y}_i(x) = k\bigr).
+  \]
+\end{itemize}
+
+La construction des $m$ modèles étant indépendante, l'entraînement est naturellement
+parallélisable et s'adapte bien aux architectures multi-c\oe urs ou distribuées
+~\cite{mlm_bagging_vs_boosting_vs_stacking,ibm_bagging}.
+
+\paragraph{Fonctionnement détaillé.}
+On peut résumer la procédure de bagging en quatre étapes~\cite{breiman_bagging_1996,eric_td4_ensemble} :
+\begin{enumerate}
+  \item \textbf{Choix de l'apprenant de base et du nombre de modèles} : on fixe un modèle de base
+  (par exemple, un arbre de décision) et un nombre de réplications $m$ (souvent entre 50 et 500).
+
+  \item \textbf{Génération des échantillons bootstrap} : pour chaque $i \in \{1,\dots,m\}$, on tire $n$
+  exemples de $D$ avec remise pour former $D_i$. Chaque observation a une probabilité
+  $1/n$ d'être choisie à chaque tirage ; au total, environ $63{,}2\,\%$ des exemples distincts
+  apparaissent dans $D_i$, les autres constituant les données \emph{out-of-bag}.
+
+  \item \textbf{Entraînement des modèles} : on entraîne indépendamment un modèle $\hat{f}_i$ sur chaque
+  $D_i$. Cette étape est triviale à paralléliser.
+
+  \item \textbf{Agrégation des prédictions} : pour une nouvelle entrée $x$, on calcule les prédictions
+  des $m$ modèles et on les agrège par moyenne (régression) ou vote (classification), comme
+  indiqué ci-dessus.
+\end{enumerate}
+
+Un pseudocode simplifié est le suivant :
+\begin{verbatim}
+fonction Bagging(D, m, base_learner):
+    modèles = []
+    pour i de 1 à m:
+        D_i = bootstrap_sample(D)      // tirage avec remise
+        f_i = base_learner.fit(D_i)
+        modèles.ajouter(f_i)
+    retour modèles
+
+fonction Predire(modèles, x):
+    prédictions = [f_i.predict(x) pour f_i dans modèles]
+    si régression:      retour moyenne(prédictions)
+    si classification:  retour mode(prédictions)
+\end{verbatim}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{chapitre1/figures/the proccess of Bagging.png}
+  \caption{Schéma pédagogique du bagging : du jeu de données original aux échantillons bootstrap, puis aux modèles de base et à l'agrégation.}
+  \label{fig:bagging-schema}
+\end{figure}
+
+\paragraph{Rôle des données out-of-bag (OOB).}
+Lors de la génération de $D_i$, chaque exemple de $D$ a une probabilité $(1 - 1/n)^n \simeq 1/e$
+de ne jamais être sélectionné ; environ $36{,}8\,\%$ des observations restent donc en dehors de
+chaque bootstrap et sont dites \emph{out-of-bag} pour le modèle $\hat{f}_i$ considéré.
+
+Pour une observation $(x_j, y_j)$, on note
+\[
+  S_j = \{\, i \in \{1,\dots,m\} \mid (x_j, y_j) \notin D_i \,\}
+\]
+l'ensemble des indices de modèles qui n'ont pas vu ce point à l'entraînement. On peut alors
+d{\'e}finir une prédiction OOB par
+\[
+  \tilde{f}_j(x_j) = \frac{1}{|S_j|} \sum_{i \in S_j} \hat{f}_i(x_j)
+\]
+en régression, ou par vote majoritaire restreint aux $i \in S_j$ en classification. Une estimation
+de l'erreur OOB est donnée par
+\[
+  \varepsilon_{\text{OOB}}
+  = \frac{1}{n} \sum_{j=1}^n \ell\bigl(\tilde{f}_j(x_j), y_j\bigr),
+\]
+où $\ell$ est la fonction de perte (MSE, entropie croisée, etc.). Cette quantité fournit une
+approximation fiable de l'erreur de généralisation, sans avoir besoin de réserver un jeu de
+validation distinct~\cite{breiman_bagging_1996,eric_td4_ensemble,ibm_bagging}.
+
+\paragraph{Réduction de la variance.}
+Le principal intérêt du bagging est de réduire la variance des prédictions. Dans un scénario
+idéal où les modèles $\hat{f}_i$ seraient indépendants et de variance $v$, la variance de la
+moyenne
+\[
+  \hat{f}(x) = \frac{1}{m} \sum_{i=1}^m \hat{f}_i(x)
+\]
+serait $v/m$. En pratique, les modèles ne sont pas indépendants ; si l'on note $\rho$ la corrélation
+moyenne entre deux prédicteurs, on obtient approximativement~\cite{cmu_ensembles_pdf} :
+\[
+  \operatorname{Var}\bigl[\hat{f}(x)\bigr]
+  \approx \rho v + \frac{1 - \rho}{m}\,v.
+\]
+Quand $m$ augmente, le second terme décroît comme $1/m$ et la variance tend vers $\rho v$.
+Le bagging est donc particulièrement pertinent lorsque les modèles de base sont peu biaisés
+mais très variables (comme les arbres profonds) : il stabilise leurs prédictions sans augmenter
+significativement le biais.
+
+\paragraph{Exemples d'algorithmes baggés.}
+
+\emph{Forêt aléatoire.}
+La forêt aléatoire (\emph{Random Forest}) est l'extension la plus célèbre du bagging. En plus du
+bootstrapping, elle introduit une randomisation des caractéristiques (\emph{features}) : à chaque
+division d'un n\oe ud de l'arbre, seul un sous-ensemble aléatoire de variables est considéré.
+Cela décorrèle les arbres et renforce encore la réduction de variance
+~\cite{breiman_bagging_1996,ibm_bagging}.
+
+Un aperçu schématique de l'algorithme Random Forest est donné par la
+figure~\ref{fig:rf-overview}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.7\textwidth]{chapitre1/figures/Aperçu de l'algorithme Random Forest(.png}
+  \caption{Aperçu de l'algorithme Random Forest.}
+  \label{fig:rf-overview}
+\end{figure}
+
+\paragraph{Exemple : bagging avec $k$ plus proches voisins.}
+Le bagging ne se limite pas aux arbres. Par exemple, appliqué au classifieur des $k$ plus proches
+voisins ($k$-NN), il permet de stabiliser un modèle naturellement très sensible aux fluctuations
+locales des données. On génère $m$ jeux bootstrap $D_i$, chacun servant de base à un modèle
+$k$-NN (qui consiste essentiellement à mémoriser $D_i$). Pour une nouvelle observation $x$, on
+agrège les $m$ prédictions $k$-NN par vote ou moyenne des probabilités estimées
+~\cite{gfg_ensemble_learning,mlm_bagging_vs_boosting_vs_stacking}.
+
+Dans les bibliothèques modernes comme scikit-learn, ces variantes sont disponibles via la
+classe \texttt{BaggingClassifier} en choisissant simplement l'estimateur de base (arbre,
+$k$-NN, etc.) et en activant le calcul de la \og OOB score \fg{} pour obtenir automatiquement
+une estimation interne de l'erreur de généralisation.
+
+\subsection{Boosting}
+
+Le boosting est une approche séquentielle où chaque modèle tente de corriger les erreurs de
+son prédécesseur, réduisant ainsi principalement le biais~\cite{mlm_bagging_vs_boosting_vs_stacking,greatlearning_bagging_boosting}.
+
+\paragraph{Mécanisme d'AdaBoost (Adaptive Boosting).}
+\begin{enumerate}
+  \item \textbf{Initialisation} : on attribue un poids identique $w_i = 1/n$ à chaque exemple.
+  \item \textbf{Itération} : on entraîne un modèle faible (souvent un \og stump \fg{}, arbre de profondeur 1)
+  et on calcule son erreur pondérée $\epsilon$.
+  \item \textbf{Mise à jour des poids} : les exemples mal classés voient leur poids augmenter, forçant le
+  modèle suivant à se concentrer sur eux. Les exemples bien classés voient leur poids
+  diminuer.
+  \item \textbf{Combinaison} : la décision finale est une somme pondérée des modèles par leur
+  coefficient de confiance $\alpha_t$.
+\end{enumerate}
+
+
+
+\paragraph{Gradient boosting.}
+
+Dans le gradient boosting (XGBoost, LightGBM, etc.), plutôt que de repondérer les points,
+on entraîne chaque nouveau modèle pour prédire le résidu (l'erreur) du modèle précédent.
+On descend ainsi le gradient de la fonction de perte pour minimiser l'erreur globale étape par
+étape.
+
+Le texte décrit un \og Schéma pédagogique du boosting \fg{} sous forme de chaîne séquentielle
+(\og Modèle 1 \fg{}, mise à jour des poids / calcul des résidus, \og Modèle 2 \fg{}, etc.) jusqu'à la
+combinaison finale. Ce contenu peut être illustré par une figure.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{chapitre1/figures/the_process_of_boosting.png}
+  \caption{Schéma pédagogique du boosting : chaîne de modèles où chaque étape corrige les erreurs de la précédente.}
+  \label{fig:boosting-schema}
+\end{figure}
+
+\subsection{Stacking (stacked generalization)}
+
+Le stacking utilise un modèle d'apprentissage pour apprendre comment combiner au mieux les
+prédictions de plusieurs modèles de base~\cite{younas_bagging_boosting_stacking,henry_theorie_ensemble}.
+
+\paragraph{Architecture en couches.}
+\begin{itemize}
+  \item \textbf{Niveau 0 (base learners)} : des modèles hétérogènes (par exemple SVM, forêt aléatoire,
+  k-NN) sont entraînés sur les données.
+  \item \textbf{Méta-caractéristiques} : les prédictions de ces modèles servent de nouvelles variables
+  d'entrée.
+  \item \textbf{Niveau 1 (méta-modèle)} : un dernier classifieur (souvent une régression logistique)
+  apprend à pondérer ces prédictions.
+\end{itemize}
+
+\paragraph{Rôle de la validation croisée.}
+
+Pour éviter le surapprentissage (le méta-modèle pourrait favoriser des modèles qui ont
+simplement mémorisé le jeu d'entraînement), on utilise des prédictions \emph{out-of-fold}. Chaque
+modèle de base prédit des données qu'il n'a pas vues durant son entraînement partiel, ce qui
+garantit que le méta-modèle apprend sur des performances réelles de généralisation.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{chapitre1/figures/the process of stacking.png}
+  \caption{Schéma pédagogique du stacking : architecture en couches avec base learners et méta-modèle.}
+  \label{fig:stacking-schema}
+\end{figure}
+
+
+
+\subsection{Voting (vote majoritaire vs vote probabiliste)}
+
+Le vote est la méthode de fusion la plus simple pour les modèles parallèles~\cite{codefinity_voting,gfg_voting_classifier}.
+
+\paragraph{Hard voting (vote majoritaire).}
+
+Chaque modèle donne une étiquette de classe. On choisit la classe qui a reçu le plus de
+suffrages. Par exemple :
+
+\begin{itemize}
+  \item Modèle A $\rightarrow$ \og chien \fg{}
+  \item Modèle B $\rightarrow$ \og chat \fg{}
+  \item Modèle C $\rightarrow$ \og chien \fg{}
+\end{itemize}
+
+La décision finale est alors \og chien \fg{} (deux voix contre une).
+
+\paragraph{Soft voting (vote probabiliste).}
+
+On calcule la moyenne des probabilités prédites pour chaque classe. Cette méthode est plus
+précise car elle accorde plus d'importance aux modèles \og sûrs d'eux \fg{}.
+
+Considérons par exemple deux classes (chat, chien) et trois modèles :
+\begin{itemize}
+  \item Modèle 1 : probabilités $[P(\text{chien}) = 0{,}4,\; P(\text{chat}) = 0{,}6]$ $\Rightarrow$ prédit \og chat \fg{}
+  \item Modèle 2 : probabilités $[0{,}4,\; 0{,}6]$ $\Rightarrow$ prédit \og chat \fg{}
+  \item Modèle 3 : probabilités $[0{,}9,\; 0{,}1]$ $\Rightarrow$ prédit \og chien \fg{}
+\end{itemize}
+
+En hard voting, la classe \og chat \fg{} (deux voix) l'emporte. En soft voting, on calcule :
+\[
+  \overline{P}(\text{chien}) = \frac{0{,}4 + 0{,}4 + 0{,}9}{3} \approx 0{,}56,\qquad
+  \overline{P}(\text{chat})  = \frac{0{,}6 + 0{,}6 + 0{,}1}{3} \approx 0{,}43.
+\]
+La décision finale est alors \og chien \fg{} : la forte conviction du modèle 3 compense l'incertitude
+des deux autres.
+
+\section{Analyse comparative des approches}
+
+Le choix d'une méthode d'ensemble dépend des contraintes du projet (volume de données,
+temps de réponse, précision requise, robustesse au bruit, coût de calcul, etc.).
+
+Le tableau suivant résume quelques caractéristiques essentielles des trois grandes familles :
+
+\begin{table}[h]
+  \centering
+  \caption{Comparaison synthétique bagging / boosting / stacking}
+  \begin{tabular}{llll}
+    \toprule
+    Critère & Bagging & Boosting & Stacking \\
+    \midrule
+    Objectif principal
+      & Réduire la variance
+      & Réduire le biais
+      & Maximiser la précision \\
+    Type de modèles
+      & Homogènes (arbres profonds)
+      & Homogènes (arbres peu profonds)
+      & Hétérogènes (divers types) \\
+    Entraînement
+      & Parallèle (indépendant)
+      & Séquentiel (dépendant)
+      & Parallèle + méta-apprentissage \\
+    Sensibilité au bruit
+      & Faible (robuste)
+      & Élevée (risque de sur-ajuster)
+      & Variable \\
+    Risque d'overfitting
+      & Faible
+      & Élevé (si non régularisé)
+      & Moyen (si données limitées) \\
+    Coût de calcul
+      & Efficace (parallélisable)
+      & Lent (entraînement en série)
+      & Très élevé \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Aspects architecturaux des systèmes multi-classifieurs}
+
+L'architecture d'un système multi-classifieurs définit la manière dont les informations circulent
+entre les composants et la façon dont les ressources sont exploitées.
+
+\subsection{Architectures de contrôle de flux}
+
+On distingue trois organisations principales :
+
+\begin{enumerate}
+  \item \textbf{Architecture parallèle} : tous les classifieurs opèrent indépendamment et
+  simultanément. La fusion intervient à la fin. Cette structure est neutre (aucun classifieur
+  n'influence les autres) et hautement parallélisable sur du matériel multi-c\oe urs.
+
+  \item \textbf{Architecture séquentielle (en série)} : les classifieurs sont organisés en cascade. Un
+  premier classifieur rapide effectue une prédiction ; s'il échoue ou exprime une faible
+  confiance, l'exemple est passé à un second modèle plus complexe. Cela permet
+  d'économiser des ressources de calcul en ne sollicitant les modèles coûteux que pour les
+  cas difficiles.
+
+  \item \textbf{Architecture hybride} : elle combine les deux approches. Par exemple, un premier étage
+  parallèle peut générer un consensus, dont le résultat est validé par un classifieur de
+  contrôle séquentiel.
+\end{enumerate}
+
+Ces formes peuvent être illustrées par des figures dédiées aux architectures parallèle et
+séquentielle.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\textwidth]{chapitre1/figures/Architecture parallele.png}
+  \caption{Architecture parallèle pour un système multi-classifieurs.}
+  \label{fig:mcs-arch-parallel}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\textwidth]{chapitre1/figures/Architecture sequentielle.png}
+  \caption{Architecture séquentielle pour un système multi-classifieurs.}
+  \label{fig:mcs-arch-sequential}
+\end{figure}
+
+\subsection{Systèmes de sélection dynamique (DS)}
+
+Une tendance majeure consiste à ne pas utiliser tous les classifieurs pour chaque exemple,
+mais à sélectionner \og à la volée \fg{} le ou les modèles les plus compétents~\cite{cruz_deslib_jmlr,deslib_github,ko2007_dynamic_ensemble,esann2014_des_regression,deslib_docs}.
+
+\begin{itemize}
+  \item \textbf{Logique de compétence locale} : on définit une \og région de compétence \fg{} autour d'un
+  exemple test (en utilisant par exemple ses plus proches voisins dans le jeu d'entraînement).
+  On évalue ensuite quels modèles du pool ont été les plus performants dans cette zone
+  spécifique.
+
+  \item \textbf{DCS (dynamic classifier selection)} : on choisit l'unique meilleur modèle pour l'exemple
+  donné.
+
+  \item \textbf{DES (dynamic ensemble selection)} : on construit un sous-ensemble de modèles
+  experts pour cette région particulière.
+\end{itemize}
+
+\section{Avantages et limites de la combinaison}
+
+\subsection{Avantages}
+
+\begin{enumerate}
+  \item \textbf{Précision supérieure} : les ensembles dépassent quasi systématiquement les modèles
+  uniques en combinant des perspectives complémentaires.
+
+  \item \textbf{Généralisation et robustesse} : en lissant les prédictions, les systèmes MCS sont moins
+  sensibles aux anomalies statistiques d'un seul jeu de données.
+
+  \item \textbf{Traitement des données complexes} : ils permettent de diviser un problème complexe
+  en sous-tâches traitées par des experts dédiés (\emph{divide and conquer}).
+\end{enumerate}
+
+\subsection{Limites}
+
+\begin{enumerate}
+  \item \textbf{Coût en ressources} : l'entraînement de dizaines ou de centaines de modèles consomme
+  du temps CPU, de la mémoire et de l'énergie.
+
+  \item \textbf{Opacité (\og black box \fg{})} : il est extrêmement difficile d'expliquer pourquoi un ensemble de
+  plusieurs centaines d'arbres de décision a pris une décision spécifique.
+
+  \item \textbf{Complexité de maintenance} : gérer un pipeline avec plusieurs modèles hétérogènes
+  demande une infrastructure plus lourde qu'un modèle monolithique.
+\end{enumerate}
+
+\section*{Conclusion}
+
+La combinaison de classifieurs représente une approche mature et extrêmement puissante de
+l'apprentissage automatique. En orchestrant judicieusement la diversité et en s'appuyant sur
+des fondements statistiques rigoureux, les systèmes multi-classifieurs permettent de
+transformer une collection de modèles imparfaits en un outil de décision d'une fiabilité
+exceptionnelle~\cite{ibm_ensemble_learning,ultralytics_ensemble_role,gfg_ensemble_learning,luisfredgs_mcs_intro}.
+

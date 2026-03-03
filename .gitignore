@@ -1,0 +1,30 @@
+# Fichiers temporaires LaTeX
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex.gz(busy)
+*.nav
+*.snm
+*.vrb
+*-blx.bib
+
+# Dossiers de compilation éventuels
+build/
+_build/
+latex.out/
+
+# Fichiers système / éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
