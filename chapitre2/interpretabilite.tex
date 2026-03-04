@@ -1,12 +1,3 @@
-\documentclass{article}
-\usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{booktabs}
-\usepackage{tabularx}
-\usepackage{enumitem}
-\usepackage{xcolor}
-
 % Définition des environnements comme dans le modèle
 \newenvironment{filrouge}{\par\medskip\color{blue}\itshape}{\par\medskip}
 \newenvironment{definition}[1]{\par\medskip\paragraph{Définition (#1).}\leavevmode\noindent}{\par\medskip}
@@ -14,17 +5,12 @@
 \newenvironment{attention}{\par\medskip\paragraph{Attention.}\leavevmode\noindent}{\par\medskip}
 \newenvironment{exemple}[1]{\par\medskip\paragraph{Exemple (#1).}\leavevmode\noindent}{\par\medskip}
 
-\begin{document}
-
-% =============================================================================
-% CHAPITRE 2 : EXPLICABILITÉ DES MODÈLES (MODEL EXPLAINABILITY)
-% =============================================================================
-\section{EXPLICABILITÉ DES MODÈLES (MODEL EXPLAINABILITY)}
+\chapter{EXPLICABILITÉ DES MODÈLES (MODEL EXPLAINABILITY)}
 
 % -----------------------------------------------------------------------------
 % INTRODUCTION DU CHAPITRE
 % -----------------------------------------------------------------------------
-\subsection*{Introduction}
+\section*{Introduction}
 
 L’essor des modèles d’apprentissage automatique complexes, en particulier les modèles non linéaires à haute capacité de représentation, a profondément transformé les systèmes de décision automatisés. Les architectures modernes, telles que les réseaux de neurones profonds, les forêts aléatoires, les méthodes de boosting et les ensembles de modèles, permettent d’atteindre des niveaux de performance prédictive élevés, mais au prix d’une perte progressive de transparence et de lisibilité du raisonnement algorithmique.
 
@@ -44,7 +30,7 @@ Tout au long de ce chapitre, nous utiliserons un exemple concret: le déploiemen
 % -----------------------------------------------------------------------------
 % SECTION 2.1 : DÉFINITION DE L'EXPLICABILITÉ
 % -----------------------------------------------------------------------------
-\subsection{Définition de l’explicabilité}
+\section{Définition de l’explicabilité}
 
 \begin{definition}{Modèle}
 Un modèle d’apprentissage automatique est défini comme une fonction:
@@ -62,7 +48,7 @@ où:
 
 Dans les modèles complexes, la structure interne de la fonction $f$ est non linéaire, distribuée et multidimensionnelle, ce qui rend la relation entre $x$ et $\hat{y}$ non directement intelligible pour un observateur humain.
 
-\subsubsection{Formulation conceptuelle}
+\subsection{Formulation conceptuelle}
 
 L’explicabilité ne cherche pas à modifier le modèle $f$, mais à construire une projection interprétable de son comportement décisionnel. Elle agit comme une transformation:
 \[
@@ -104,7 +90,7 @@ où $\alpha_i$ représente la contribution relative de la variable $x_i$ dans la
 \end{itemize}
 \end{exemple}
 
-\subsubsection{Positionnement systémique}
+\subsection{Positionnement systémique}
 
 L’explicabilité introduit une nouvelle couche fonctionnelle dans les systèmes d’IA:
 \[
@@ -116,7 +102,7 @@ Elle transforme ainsi un système prédictif en un système décisionnel explica
 % -----------------------------------------------------------------------------
 % SECTION 2.2 : INTERPRÉTABILITÉ VS EXPLICABILITÉ
 % -----------------------------------------------------------------------------
-\subsection{Interprétabilité vs explicabilité}
+\section{Interprétabilité vs explicabilité}
 
 Bien que souvent utilisées de manière interchangeable, les notions d’interprétabilité et d’explicabilité renvoient à deux concepts théoriquement distincts.
 
@@ -142,7 +128,7 @@ Chaque coefficient $w_i$ représente directement l’influence de la variable $x
 L’explicabilité désigne la capacité à expliquer un modèle, y compris lorsqu’il est intrinsèquement opaque. Elle est une propriété fonctionnelle externe au modèle, reposant sur une fonction d’explication $E: (f, x) \rightarrow H$.
 \end{definition}
 
-\subsubsection{Différence structurelle fondamentale}
+\subsection{Différence structurelle fondamentale}
 
 \begin{table}[h!]
 \centering
@@ -163,7 +149,7 @@ Complexité admissible & Faible & Élevée \\
 \end{tabularx}
 \end{table}
 
-\subsubsection{Typologie formelle des modèles}
+\subsection{Typologie formelle des modèles}
 
 \begin{enumerate}
     \item \textbf{Modèles interprétables et explicables}: $f \in I \cap E$ \\
@@ -200,7 +186,7 @@ $\rightarrow$ contributions explicatives post-hoc.
 L’interprétabilité est une propriété intrinsèque d’un modèle liée à sa structure interne, tandis que l’explicabilité est une propriété extrinsèque liée à la capacité du système à produire des représentations compréhensibles de son comportement décisionnel.
 \end{pointcle}
 
-\subsubsection{Conséquence scientifique majeure}
+\subsection{Conséquence scientifique majeure}
 
 Cette distinction implique que l’on peut optimiser:
 \begin{itemize}
@@ -222,11 +208,11 @@ où:
 % -----------------------------------------------------------------------------
 % SECTION 2.3 : MÉTHODES D'EXPLICABILITÉ
 % -----------------------------------------------------------------------------
-\subsection{Méthodes d’explicabilité}
+\section{Méthodes d’explicabilité}
 
 Les méthodes d’explicabilité regroupent l’ensemble des techniques permettant de produire des représentations compréhensibles du comportement décisionnel d’un modèle d’apprentissage automatique. Formellement, étant donné un modèle $f: X \rightarrow Y$ et une observation $x \in X$, les méthodes d’explicabilité cherchent à construire une fonction d’explication $E: (f, x) \rightarrow H$.
 
-\subsubsection{Modèles intrinsèquement interprétables}
+\subsection{Modèles intrinsèquement interprétables}
 
 Les modèles intrinsèquement interprétables sont des modèles dont la structure interne est directement compréhensible par un humain, sans nécessiter de mécanisme externe d’explication.
 
@@ -262,7 +248,7 @@ f(x) = \beta_0 + \sum_{i=1}^{n} f_i(x_i)
 Un modèle intrinsèquement interprétable est un modèle dont la structure mathématique permet une lecture directe du raisonnement décisionnel, sans mécanisme externe d’explication.
 \end{pointcle}
 
-\subsubsection{Méthodes post-hoc}
+\subsection{Méthodes post-hoc}
 
 Les méthodes post-hoc désignent l’ensemble des techniques d’explicabilité appliquées après l’entraînement d’un modèle, sans en modifier la structure interne.
 
@@ -398,11 +384,11 @@ Relation: $PD(x_s) = \frac{1}{N} \sum_{i=1}^{N} ICE_i(x_s)$
 % -----------------------------------------------------------------------------
 % SECTION 2.4 : EXPLICABILITÉ LOCALE VS GLOBALE
 % -----------------------------------------------------------------------------
-\subsection{Explicabilité locale vs globale}
+\section{Explicabilité locale vs globale}
 
 L’explicabilité peut être analysée selon deux niveaux complémentaires: locale (centrée sur les décisions individuelles) et globale (orientée vers la compréhension du comportement général du modèle).
 
-\subsubsection{Explicabilité locale}
+\subsection{Explicabilité locale}
 
 L’explicabilité locale vise à expliquer une prédiction spécifique $\hat{y} = f(x)$ en cherchant une fonction explicative locale $g_x$ telle que:
 \[
@@ -419,7 +405,7 @@ L’explicabilité locale vise à expliquer une prédiction spécifique $\hat{y}
 
 \textbf{Méthodes associées:} LIME, SHAP (local), ICE, contre-factuels.
 
-\subsubsection{Explicabilité globale}
+\subsection{Explicabilité globale}
 
 L’explicabilité globale vise à comprendre la structure décisionnelle du modèle sur l'ensemble du domaine:
 \[
@@ -436,7 +422,7 @@ L’explicabilité globale vise à comprendre la structure décisionnelle du mod
 
 \textbf{Méthodes associées:} SHAP (global), PDP, feature importance globale, règles globales.
 
-\subsubsection{Différences structurelles}
+\subsection{Différences structurelles}
 
 \begin{table}[h!]
 \centering
@@ -501,4 +487,3 @@ Dans un contexte médical, l'explicabilité n'est pas optionnelle. Elle conditio
 
 Parallèlement, l’explicabilité devient un enjeu \textbf{éthique} et \textbf{réglementaire} majeur. Elle conditionne le respect des principes fondamentaux de \textbf{justice}, d’\textbf{équité}, de \textbf{non-discrimination} et de \textbf{responsabilité morale}, tout en répondant aux exigences juridiques de \textbf{transparence}, de \textbf{droit à l’explication} et de \textbf{responsabilité légale}. Ainsi, l’explicabilité ne relève plus uniquement de l’ingénierie des modèles, mais s’inscrit dans une \textbf{vision systémique de l’IA}, où performance algorithmique, acceptabilité sociale, conformité réglementaire et responsabilité institutionnelle doivent être conjointement intégrées. Elle devient, de ce fait, un \textbf{pilier fondamental} de la conception des systèmes d’intelligence artificielle \textbf{durables, fiables et légitimes}.
 
-\end{document}
