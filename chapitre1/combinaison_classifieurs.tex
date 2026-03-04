@@ -384,33 +384,182 @@ une estimation interne de l'erreur de généralisation.
 
 \subsection{Boosting}
 
-Le boosting est une approche séquentielle où chaque modèle tente de corriger les erreurs de
-son prédécesseur, réduisant ainsi principalement le biais~\cite{mlm_bagging_vs_boosting_vs_stacking,greatlearning_bagging_boosting}.
+Le boosting regroupe une famille de méthodes séquentielles où les modèles sont entraînés les
+uns après les autres, chacun se concentrant sur les erreurs commises par les précédents. Contrairement
+au bagging qui agit surtout sur la variance, le boosting cherche principalement à
+réduire le biais, en construisant progressivement un modèle additif puissant à partir de
+modèles de base faibles~\cite{freund_schapire_adaboost_1997,schapire_boosting_intro_1999,mlm_bagging_vs_boosting_vs_stacking,greatlearning_bagging_boosting}.
 
-\paragraph{Mécanisme d'AdaBoost (Adaptive Boosting).}
+\paragraph{Principe général.}
+On considère un ensemble d'entraînement $\{(x_i, y_i)\}_{i=1}^n$ avec $y_i \in \{-1, +1\}$ pour
+fixer les idées. Le boosting maintient une distribution de poids $D_t(i)$ sur les exemples. À
+chaque itération $t$ :
 \begin{enumerate}
-  \item \textbf{Initialisation} : on attribue un poids identique $w_i = 1/n$ à chaque exemple.
-  \item \textbf{Itération} : on entraîne un modèle faible (souvent un \og stump \fg{}, arbre de profondeur 1)
-  et on calcule son erreur pondérée $\epsilon$.
-  \item \textbf{Mise à jour des poids} : les exemples mal classés voient leur poids augmenter, forçant le
-  modèle suivant à se concentrer sur eux. Les exemples bien classés voient leur poids
-  diminuer.
-  \item \textbf{Combinaison} : la décision finale est une somme pondérée des modèles par leur
-  coefficient de confiance $\alpha_t$.
+  \item un \emph{apprenant faible} $h_t$ est entraîné sur les données pondérées par $D_t$ ;
+  \item son erreur pondérée $\varepsilon_t = \sum_i D_t(i)\,\mathbb{I}\bigl(h_t(x_i) \neq y_i\bigr)$ est évaluée ;
+  \item un coefficient $\alpha_t$ mesurant la confiance accordée à $h_t$ est calculé ;
+  \item les poids $D_t$ sont mis à jour pour donner plus d'importance aux exemples mal
+  prédits.
+\end{enumerate}
+Le modèle final est une combinaison pondérée des $h_t$. Sous l'hypothèse de \og faible
+apprentissage \fg{} (chaque $h_t$ fait un peu mieux que le hasard), on peut montrer que l'erreur
+d'entraînement décroît de manière exponentielle avec le nombre d'itérations
+~\cite{freund_schapire_adaboost_1997,schapire_boosting_intro_1999}.
+
+\paragraph{AdaBoost : formulation et réduction du biais.}
+AdaBoost (Adaptive Boosting) est l'algorithme de boosting le plus classique
+~\cite{freund_schapire_adaboost_1997,schapire_boosting_intro_1999}. Sa version binaire peut
+se décrire comme suit.
+
+\begin{enumerate}
+  \item \textbf{Initialisation.} On part d'une distribution uniforme
+  \[
+    D_1(i) = \frac{1}{n}, \quad i = 1,\dots,n.
+  \]
+
+  \item \textbf{Pour $t = 1,\dots,T$ :}
+  \begin{enumerate}
+    \item on entraîne un modèle faible $h_t : \mathcal{X} \to \{-1,+1\}$ en minimisant l'erreur
+    pondérée
+    \[
+      \varepsilon_t = \sum_{i=1}^n D_t(i)\,\mathbb{I}\bigl(h_t(x_i) \neq y_i\bigr),
+    \]
+    avec la contrainte $\varepsilon_t < 1/2$ ;
+
+    \item on définit le poids du modèle
+    \[
+      \alpha_t = \frac{1}{2}\,\log\!\left(\frac{1 - \varepsilon_t}{\varepsilon_t}\right) ;
+    \]
+
+    \item on met à jour les poids des exemples :
+    \[
+      D_{t+1}(i)
+      = \frac{D_t(i)\,\exp\bigl(-\alpha_t y_i h_t(x_i)\bigr)}{Z_t},
+    \]
+    où $Z_t$ est un facteur de normalisation assurant $\sum_i D_{t+1}(i) = 1$. Les exemples
+    mal classés ($y_i h_t(x_i) < 0$) voient leur poids augmenter, ce qui force $h_{t+1}$ à se
+    focaliser sur eux.
+  \end{enumerate}
 \end{enumerate}
 
+Le classifieur final est
+\[
+  H(x) = \operatorname{sign}\!\left(\sum_{t=1}^T \alpha_t h_t(x)\right).
+\]
+Théoriquement, on peut montrer que l'erreur d'entraînement de $H$ est majorée par
+~\cite{schapire_boosting_intro_1999,freund_schapire_adaboost_1997}
+\[
+  \mathrm{err}_{\text{train}}(H)
+  \leq \prod_{t=1}^T Z_t
+  \leq \exp\!\left(-2\sum_{t=1}^T \gamma_t^2\right),
+  \quad
+  \text{où } \gamma_t = \tfrac{1}{2} - \varepsilon_t.
+\]
+Si chaque apprenant faible est au moins un peu meilleur que le hasard ($\gamma_t \ge \gamma > 0$),
+l'erreur d'entraînement décroît donc comme $\exp(-2\gamma^2 T)$. En pratique, cela signifie
+que le biais du modèle global diminue rapidement avec le nombre d'itérations, tant que les
+apprenants restent effectivement faibles et diversifiés.
 
+On peut aussi interpréter AdaBoost comme une méthode qui minimise de façon gloutonne la
+perte exponentielle
+\[
+  L(f) = \sum_{i=1}^n \exp\!\bigl(-y_i f(x_i)\bigr),
+  \quad f(x) = \sum_{t=1}^T \alpha_t h_t(x),
+\]
+par une descente de gradient coordonnée dans l'espace des fonctions. Cette vision explique
+pourquoi la marge $y_i f(x_i)$ joue un rôle central dans la performance~\cite{schapire_boosting_intro_1999}.
 
-\paragraph{Gradient boosting.}
+En pratique, AdaBoost est souvent implémenté avec des \emph{decision stumps} (arbres de
+profondeur 1) comme apprenants faibles ; dans scikit-learn, on peut l'utiliser via la classe
+\texttt{AdaBoostClassifier} avec un \texttt{DecisionTreeClassifier(max\_depth=1)} comme estimateur
+de base. La complexité est en gros proportionnelle à $T$ fois le coût d'entraînement d'un
+apprenant faible, et l'algorithme est naturellement itératif.
 
-Dans le gradient boosting (XGBoost, LightGBM, etc.), plutôt que de repondérer les points,
-on entraîne chaque nouveau modèle pour prédire le résidu (l'erreur) du modèle précédent.
-On descend ainsi le gradient de la fonction de perte pour minimiser l'erreur globale étape par
-étape.
+\paragraph{Gradient boosting : point de vue en espace de fonctions.}
+Le gradient boosting généralise l'idée du boosting à toute fonction de perte différentiable
+~\cite{friedman_gbm_2001}. On cherche à approximer une fonction $F^\star$ en construisant un
+modèle additif
+\[
+  F_T(x) = \sum_{t=1}^T \nu\,\beta_t\,h_t(x),
+\]
+où $h_t$ sont des apprenants faibles (souvent des arbres de décision), $\beta_t$ des coefficients
+et $\nu \in (0,1]$ un facteur de \og shrinkage \fg{} (taux d'apprentissage).
 
-Le texte décrit un \og Schéma pédagogique du boosting \fg{} sous forme de chaîne séquentielle
-(\og Modèle 1 \fg{}, mise à jour des poids / calcul des résidus, \og Modèle 2 \fg{}, etc.) jusqu'à la
-combinaison finale. Ce contenu peut être illustré par une figure.
+À chaque itération $t$ :
+\begin{enumerate}
+  \item on dispose d'un modèle courant $F_{t-1}$ ;
+  \item on calcule, pour chaque exemple, les \emph{pseudo-résidus} correspondant au gradient
+  négatif de la perte par rapport aux prédictions :
+  \[
+    r_{it}
+    = -\left.\frac{\partial}{\partial F(x_i)} L\bigl(y_i, F(x_i)\bigr)\right|_{F = F_{t-1}};
+  \]
+  pour une perte quadratique, on obtient simplement $r_{it} = y_i - F_{t-1}(x_i)$ ;
+
+  \item on ajuste un apprenant faible $h_t$ pour approximer ces pseudo-résidus, typiquement par
+  régression aux moindres carrés :
+  \[
+    h_t \approx \arg\min_h \sum_{i=1}^n \bigl(r_{it} - h(x_i)\bigr)^2 ;
+  \]
+
+  \item on choisit un pas optimal $\beta_t$ (par recherche de ligne) :
+  \[
+    \beta_t = \arg\min_{\beta} \sum_{i=1}^n
+      L\bigl(y_i, F_{t-1}(x_i) + \beta\,h_t(x_i)\bigr),
+  \]
+  puis on met à jour
+  \[
+    F_t(x) = F_{t-1}(x) + \nu\,\beta_t\,h_t(x).
+  \]
+\end{enumerate}
+
+Pour la régression (perte quadratique), cela revient à ajuster successivement les résidus
+$y_i - F_{t-1}(x_i)$ ; pour la classification logistique, les pseudo-résidus correspondent à une
+erreur sur les probabilités estimées. Ainsi, chaque itération corrige systématiquement l'erreur
+résiduelle, ce qui diminue le biais tout en permettant un contrôle fin de la complexité via
+$\nu$, la profondeur des arbres et le nombre d'itérations~\cite{friedman_gbm_2001}.
+
+Des implémentations standards existent dans scikit-learn (\texttt{GradientBoostingClassifier},
+\texttt{GradientBoostingRegressor}) ainsi que dans des bibliothèques dédiées comme XGBoost et
+LightGBM.
+
+\paragraph{XGBoost et LightGBM : optimisations modernes.}
+XGBoost~\cite{chen_guestrin_xgboost_2016} et LightGBM~\cite{ke_lightgbm_2017} sont des
+implémentations très optimisées du gradient boosting sur arbres de décision, qui ajoutent
+plusieurs idées clés :
+\begin{itemize}
+  \item utilisation d'un développement de Taylor d'ordre 2 de la perte pour calculer, pour chaque
+  feuille candidate, le gain associé à une scission en fonction de la somme des gradients
+  $G$ et des hessiennes $H$ ;
+
+  \item régularisation explicite des arbres via des termes de pénalisation $L_2$ sur les poids des
+  feuilles et une pénalité sur le nombre de feuilles (paramètres $\lambda$ et $\gamma$) ;
+
+  \item sous-échantillonnage des observations et des variables (\emph{row/column subsampling})
+  pour réduire la corrélation entre arbres et accélérer l'entraînement ;
+
+  \item structures de données basées sur des histogrammes et croissance feuille-par-feuille
+  (LightGBM) pour optimiser l'utilisation de la mémoire et du CPU.
+\end{itemize}
+
+Par exemple, dans XGBoost, le gain d'une scission est approximativement donné par
+~\cite{chen_guestrin_xgboost_2016}
+\[
+  \operatorname{Gain}
+  = \frac{1}{2}
+    \left(
+      \frac{G_L^2}{H_L + \lambda}
+      + \frac{G_R^2}{H_R + \lambda}
+      - \frac{(G_L + G_R)^2}{H_L + H_R + \lambda}
+    \right)
+    - \gamma,
+\]
+où $G_L, H_L$ (resp. $G_R, H_R$) sont les sommes des gradients et hessiennes dans les feuilles
+gauche et droite. Cette expression permet de choisir efficacement les meilleures scissions.
+
+Du point de vue pratique, XGBoost et LightGBM sont devenus des standards de facto pour les
+problèmes tabulaires de grande dimension, grâce à leur excellent compromis entre biais (faible)
+et variance contrôlée par une régularisation riche et de nombreux hyperparamètres.
 
 \begin{figure}[h]
   \centering

@@ -9,16 +9,84 @@
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{hyperref}
+
+% interligne
+\usepackage{setspace}
+\onehalfspacing
+
+% COULEUR 
+\usepackage{color} % où xcolor selon l'installation
+\definecolor{Valentia}{RGB}{233,78,82}
+\definecolor{Titleblue}{RGB}{0, 0, 255}
+
 \usepackage{geometry}
 \geometry{margin=2.5cm}
 
+\usepackage{graphicx}  % Pour les images
+\usepackage{amsmath, amssymb}  % Pour les maths
+\usepackage[hidelinks]{hyperref}  % Pour les liens
+\usepackage{float}  % Pour le placement des figures
+
+\usepackage{enumitem} 
+
+
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+
 \title{Combinaison de classifieurs et méthodes d'ensemble}
-\author{}
-\date{}
+\author{DNJOMOU YONMBA WILFRIED LOIC  \\
+KENFACK LEONEL \\
+SAGUEU WAKAM DILANE \\}
+\date{Mars 2025}
 
 \begin{document}
 
-\maketitle
+\begin{titlepage}
+    \centering
+    \includegraphics[width=\textwidth]{entete.png}\\[2.0cm]  
+
+    \textsc{\Large IAR418 - Fouille de Données}\\[0.5cm]
+
+    % Titre principal
+    \HRule \\[0.4cm]
+    \color{Titleblue}
+    \fontsize{20}{23.4}\selectfont
+    \huge \bfseries \underline{CHAPITRE I:} Introduction au Data Mining \\[0.4cm]
+    \color{black}
+
+    \HRule \\[0.4cm]
+
+
+    \vspace{2cm}
+
+    % Présenté par
+    \fontsize{15}{18}\selectfont
+    \color{black}
+    \textbf{Présenté par :}\\[0.5cm]
+    
+    \begin{tabular}{l l}
+        \textbf{DNJOMOU YONMBA WILFRIED LOIC} & \textbf{CM-UDS-24SCI0999} \\
+        \textbf{KENFACK LEONEL} & \textbf{CM-UDS-17SCI0998} \\
+        \textbf{SAGUEU WAKAM DILANE} & \textbf{CM-UDS-24SCI1040} \\
+    \end{tabular}
+
+    \vspace{1cm}
+
+    % SUPERVISEUR
+    \fontsize{15}{18}\selectfont
+    \color{black}
+    \textbf{Superviseur :} Pr. KENGNE TCHENDJI Vianney\\[0.5cm]
+
+    \vfill
+    
+    \hrulefill
+
+    \vspace{5mm}
+    
+    \centering{\large{\bf Année académique 2024-2025 }}
+\end{titlepage}
+
 \tableofcontents
 
 % Chapitre 0 : Introduction
