@@ -1,0 +1,13 @@
+% Conclusion générale
+\chapter*{Conclusion générale}
+\addcontentsline{toc}{chapter}{Conclusion générale}
+
+Ce rapport a exploré deux piliers de l'apprentissage automatique contemporain : la \textbf{combinaison de classifieurs} et l'\textbf{explicabilité des modèles}, ainsi que leurs interactions. Plusieurs enseignements en découlent.
+
+La combinaison de classifieurs (bagging, boosting, stacking, voting) permet d'améliorer la précision et la robustesse des prédictions en s'appuyant sur la diversité et l'agrégation des modèles. Les motivations théoriques (réduction de la variance, du biais ou des deux) et les choix architecturaux (génération de l'ensemble, sélection, fusion) conditionnent directement les performances. En contrepartie, ces systèmes deviennent plus complexes : plusieurs apprenants, mécanismes de pondération ou de méta-apprentissage, et donc une décision plus difficile à décomposer et à justifier.
+
+L'explicabilité apparaît comme une exigence complémentaire à la performance. La distinction entre interprétabilité (structure du modèle lisible) et explicabilité (capacité à rendre compte des décisions) permet de clarifier les objectifs. Les méthodes post-hoc (importance des variables, LIME, SHAP, PDP/ICE) offrent des leviers pour expliquer des modèles a priori opaques, en local ou en global. Leur utilisation dans les systèmes décisionnels est renforcée par les enjeux éthiques et réglementaires (transparence, non-discrimination, droit à l'information).
+
+À l'intersection des deux thèmes, le rapport a mis en évidence le \textbf{problème de la boîte noire} propre aux ensembles : une décision collective est plus difficile à attribuer à des facteurs précis qu'une décision d'un modèle unique. Les stratégies d'explicabilité des ensembles (explication au niveau de l'agrégation, au niveau des apprenants de base, ou par approximation) permettent de progresser, mais un \textbf{compromis entre performance et compréhension} reste inévitable. Selon le contexte (réglementation, domaine critique, acceptabilité utilisateur), le curseur entre complexité du modèle et niveau d'explicabilité requis devra être ajusté.
+
+En synthèse, la combinaison de classifieurs reste un outil puissant pour la qualité prédictive ; l'explicabilité en est le corollaire indispensable dès que les décisions ont un impact humain ou juridique. Les travaux futurs pourront approfondir l'intégration de contraintes d'explicabilité dès la conception des systèmes d'ensemble et l'évaluation standardisée des méthodes d'explication dans ce cadre.
