@@ -232,6 +232,68 @@ peut surpasser un modèle unique :
   complexes.
 \end{enumerate}
 
+\section{Achirtectures des systèmes multi-classifieurs}
+
+L'architecture d'un système multi-classifieurs définit la manière dont les informations circulent
+entre les composants et la façon dont les ressources sont exploitées.
+
+\subsection{Architectures de contrôle de flux}
+
+On distingue trois organisations principales :
+
+\begin{enumerate}
+  \item \textbf{Architecture parallèle} : tous les classifieurs opèrent indépendamment et
+  simultanément. La fusion intervient à la fin. Cette structure est neutre (aucun classifieur
+  n'influence les autres) et hautement parallélisable sur du matériel multi-c\oe urs.
+
+  \item \textbf{Architecture séquentielle (en série)} : les classifieurs sont organisés en cascade. Un
+  premier classifieur rapide effectue une prédiction ; s'il échoue ou exprime une faible
+  confiance, l'exemple est passé à un second modèle plus complexe. Cela permet
+  d'économiser des ressources de calcul en ne sollicitant les modèles coûteux que pour les
+  cas difficiles.
+
+  \item \textbf{Architecture hybride} : elle combine les deux approches. Par exemple, un premier étage
+  parallèle peut générer un consensus, dont le résultat est validé par un classifieur de
+  contrôle séquentiel.
+\end{enumerate}
+
+Ces formes peuvent être illustrées par des figures dédiées aux architectures parallèle et
+séquentielle.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\textwidth]{chapitre1/figures/Architecture parallele.png}
+  \caption{Architecture parallèle pour un système multi-classifieurs.}
+  \label{fig:mcs-arch-parallel}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.9\textwidth]{chapitre1/figures/Architecture sequentielle.png}
+  \caption{Architecture séquentielle pour un système multi-classifieurs.}
+  \label{fig:mcs-arch-sequential}
+\end{figure}
+
+\subsection{Systèmes de sélection dynamique (DS)}
+
+Une tendance majeure consiste à ne pas utiliser tous les classifieurs pour chaque exemple,
+mais à sélectionner \og à la volée \fg{} le ou les modèles les plus compétents~\cite{cruz_deslib_jmlr,deslib_github,ko2007_dynamic_ensemble,esann2014_des_regression,deslib_docs}.
+
+\begin{itemize}
+  \item \textbf{Logique de compétence locale} : on définit une \og région de compétence \fg{} autour d'un
+  exemple test (en utilisant par exemple ses plus proches voisins dans le jeu d'entraînement).
+  On évalue ensuite quels modèles du pool ont été les plus performants dans cette zone
+  spécifique.
+
+  \item \textbf{DCS (dynamic classifier selection)} : on choisit l'unique meilleur modèle pour l'exemple
+  donné.
+
+  \item \textbf{DES (dynamic ensemble selection)} : on construit un sous-ensemble de modèles
+  experts pour cette région particulière.
+\end{itemize}
+
+
+
 \section{Typologies des méthodes d'ensemble}
 
 Les méthodes d'ensemble se divisent principalement en approches parallèles (bagging),
@@ -406,6 +468,13 @@ apprentissage \fg{} (chaque $h_t$ fait un peu mieux que le hasard), on peut mont
 d'entraînement décroît de manière exponentielle avec le nombre d'itérations
 ~\cite{freund_schapire_adaboost_1997,schapire_boosting_intro_1999}.
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{chapitre1/figures/the_process_of_boosting.png}
+  \caption{Schéma pédagogique du boosting : chaîne de modèles où chaque étape corrige les erreurs de la précédente.}
+  \label{fig:boosting-schema}
+\end{figure}
+
 \paragraph{AdaBoost : formulation et réduction du biais.}
 AdaBoost (Adaptive Boosting) est l'algorithme de boosting le plus classique
 ~\cite{freund_schapire_adaboost_1997,schapire_boosting_intro_1999}. Sa version binaire peut
@@ -561,43 +630,178 @@ Du point de vue pratique, XGBoost et LightGBM sont devenus des standards de fact
 problèmes tabulaires de grande dimension, grâce à leur excellent compromis entre biais (faible)
 et variance contrôlée par une régularisation riche et de nombreux hyperparamètres.
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.85\textwidth]{chapitre1/figures/the_process_of_boosting.png}
-  \caption{Schéma pédagogique du boosting : chaîne de modèles où chaque étape corrige les erreurs de la précédente.}
-  \label{fig:boosting-schema}
-\end{figure}
+
 
 \subsection{Stacking (stacked generalization)}
 
-Le stacking utilise un modèle d'apprentissage pour apprendre comment combiner au mieux les
-prédictions de plusieurs modèles de base~\cite{younas_bagging_boosting_stacking,henry_theorie_ensemble}.
+Le stacking, ou \emph{stacked generalization}, est une méthode d'ensemble à deux niveaux où un
+modèle dit \emph{méta-modèle} apprend comment combiner au mieux les prédictions de plusieurs
+modèles de base~\cite{wolpert_stacked_1992,ting_witten_stacking_1999}. Contrairement au vote
+ou à la simple moyenne, les poids de combinaison sont appris à partir des données, ce qui permet
+souvent de réduire l'erreur quadratique moyenne (MSE) en régression, ou l'erreur de classification,
+par rapport à chaque modèle pris isolément~\cite{breiman_stacked_regressions_1996}.
 
 \paragraph{Architecture en couches.}
+On distingue classiquement deux niveaux~\cite{wolpert_stacked_1992,ting_witten_stacking_1999} :
 \begin{itemize}
-  \item \textbf{Niveau 0 (base learners)} : des modèles hétérogènes (par exemple SVM, forêt aléatoire,
-  k-NN) sont entraînés sur les données.
-  \item \textbf{Méta-caractéristiques} : les prédictions de ces modèles servent de nouvelles variables
-  d'entrée.
-  \item \textbf{Niveau 1 (méta-modèle)} : un dernier classifieur (souvent une régression logistique)
-  apprend à pondérer ces prédictions.
+  \item \textbf{Niveau 0 (apprenants de base)} : plusieurs modèles potentiellement très différents
+  (forêt aléatoire, gradient boosting, SVM, k-NN, réseaux neuronaux, etc.) sont entraînés sur
+  les données d'entrée $x$ pour prédire $y$ ;
+
+  \item \textbf{Niveau 1 (méta-modèle)} : un dernier modèle (souvent une régression linéaire pour la
+  régression, ou une régression logistique pour la classification) prend en entrée les
+  prédictions des modèles de niveau 0 et apprend une combinaison optimale.
 \end{itemize}
 
-\paragraph{Rôle de la validation croisée.}
-
-Pour éviter le surapprentissage (le méta-modèle pourrait favoriser des modèles qui ont
-simplement mémorisé le jeu d'entraînement), on utilise des prédictions \emph{out-of-fold}. Chaque
-modèle de base prédit des données qu'il n'a pas vues durant son entraînement partiel, ce qui
-garantit que le méta-modèle apprend sur des performances réelles de généralisation.
+En notation matricielle pour un problème de régression, si l'on dispose de $K$ modèles de
+base produisant des prédictions $\hat{y}_k^{(i)}$ pour l'observation $i$, on forme la matrice de
+caractéristiques de niveau 1 :
+\[
+  Z =
+  \begin{bmatrix}
+    \hat{y}_1^{(1)} & \dots & \hat{y}_K^{(1)} \\
+    \vdots          &       & \vdots          \\
+    \hat{y}_1^{(n)} & \dots & \hat{y}_K^{(n)}
+  \end{bmatrix},
+  \quad
+  y =
+  \begin{bmatrix}
+    y^{(1)} \\
+    \vdots  \\
+    y^{(n)}
+  \end{bmatrix}.
+\]
+Le méta-modèle linéaire cherche alors des coefficients $w \in \mathbb{R}^K$ tels que
+\[
+  \hat{y}^{\text{stack}} = Z w
+\]
+approche au mieux $y$ au sens de la MSE. Le choix de $w$ se fait en minimisant
+\[
+  \min_w \|y - Z w\|_2^2,
+\]
+éventuellement sous la contrainte $w_k \ge 0$ comme proposé par Breiman
+~\cite{breiman_stacked_regressions_1996}. Cette contrainte de non-négativité aide à garantir
+que le stacking ne dégrade pas les performances par rapport aux meilleurs modèles de base.
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.8\textwidth]{chapitre1/figures/the process of stacking.png}
-  \caption{Schéma pédagogique du stacking : architecture en couches avec base learners et méta-modèle.}
+  \caption{Schéma pédagogique du stacking : architecture en couches avec apprenants de niveau 0 et méta-modèle de niveau 1.}
   \label{fig:stacking-schema}
 \end{figure}
 
+\paragraph{Le problème du \og data leakage \fg{}.}
+Une implémentation naïve du stacking consisterait à entraîner les modèles de base sur tout
+le jeu d'entraînement $D_{\text{train}}$ et à utiliser leurs prédictions sur ces mêmes exemples
+comme méta-caractéristiques :
+\[
+  Z_{ij}^{\text{na\"if}} = L_i(x_j),
+  \quad (x_j,y_j) \in D_{\text{train}},
+\]
+où $L_i$ désigne le $i$-ème modèle de base. Dans ce cas, le méta-modèle est ajusté sur des
+prédictions issues de données déjà vues par les modèles de niveau 0. On introduit ainsi une
+fuite d'information (\emph{data leakage}) : les performances apparentes sur l'entraînement sont
+très optimistes, et le méta-modèle apprend à exploiter des corrélations artificiellement fortes
+entre les sorties des modèles de base et la cible~\cite{ting_witten_stacking_1999}.
 
+Pour obtenir une estimation non biaisée des sorties des modèles de base, il faut s'assurer que,
+pour chaque exemple $(x_j,y_j)$, les prédictions utilisées au niveau 1 proviennent de modèles
+qui n'ont pas été entraînés sur $(x_j,y_j)$. La solution est d'utiliser des prédictions
+\emph{out-of-fold} (OOF) construites par validation croisée interne.
+
+
+
+\paragraph{Etapes algorithmiques (stacking avec validation croisée).}
+La procédure standard de stacking avec prédictions OOF se déroule comme suit :
+\begin{enumerate}
+  \item \textbf{Sélection des modèles de base.} Le choix des apprenants de niveau 0 est crucial. On
+  recherche :
+  \begin{itemize}
+    \item \textbf{Diversité} : des modèles capturant des aspects différents du problème (modèles
+    linéaires, arbres, réseaux de neurones, SVM, $k$-NN, etc.) ;
+    \item \textbf{Complémentarité} : des erreurs faiblement corrélées entre modèles, de sorte que
+    chacun corrige les faiblesses des autres ;
+    \item \textbf{Qualité individuelle} : chaque modèle doit être raisonnablement performant pris
+    isolément (un modèle très mauvais reste difficile à rattraper par le stacking) ;
+    \item \textbf{Hétérogénéité} : on privilégie des familles algorithmiques différentes plutôt que
+    de nombreuses variantes très proches d'un même modèle.
+  \end{itemize}
+
+  \item \textbf{Découpage du jeu d'entraînement.} On partitionne le jeu de données en $K$ plis de
+  validation croisée $F_1,\dots,F_K$.
+
+  \item \textbf{Entraînement des modèles de base et génération des méta-caractéristiques.}
+  Pour chaque pli $F_k$ :
+  \begin{enumerate}
+    \item on entraîne chaque modèle de base sur $D \setminus F_k$ ;
+    \item on applique ces modèles à $F_k$ pour produire des prédictions $\hat{y}_k^{(i)}$ pour les
+    exemples $i \in F_k$.
+  \end{enumerate}
+  En concaténant les prédictions sur tous les plis, on obtient, pour chaque exemple $i$, un
+  vecteur $(\hat{y}_1^{(i)},\dots,\hat{y}_K^{(i)})$ obtenu sur des données \emph{out-of-fold}.
+
+  \item \textbf{Apprentissage du méta-modèle.} On ajuste ensuite le méta-modèle sur la matrice
+  $Z$ et les vraies cibles $y$. Le choix du méta-modèle dépend du type de tâche et du
+  compromis biais/variance recherché. Quelques options courantes sont :
+  \begin{itemize}
+    \item \textbf{Régression linéaire / Ridge} : interprétable, stable, rapide ; bon choix par défaut
+    en régression pour un premier essai ;
+    \item \textbf{Régression logistique} : produit des probabilités bien calibrées ; adaptée à la
+    classification binaire ;
+    \item \textbf{Arbre de décision (profondeur modérée)} : permet de capturer des interactions
+    non linéaires entre les sorties des modèles de base ;
+    \item \textbf{Gradient boosting peu profond} : très performant lorsque l'on dispose de beaucoup
+    de données et que l'on souhaite modéliser des combinaisons complexes de prédicteurs de
+    niveau 0 ;
+    \item \textbf{Réseau de neurones peu profond} : utile pour des schémas de stacking plus
+    profonds ou lorsque les relations entre modèles de base sont fortement non linéaires.
+  \end{itemize}
+  En pratique, on privilégie souvent des méta-modèles simples (régression linéaire ou logistique)
+  pour limiter le risque de surajustement au niveau 1.
+
+  \item \textbf{Apprentissage final des modèles de base.} On réentraîne enfin tous les modèles de
+  base sur la totalité du jeu d'entraînement, avant de les utiliser en test. En production, la
+  prédiction d'un nouvel exemple $x^\star$ se fait en deux temps : (i) chaque modèle de base
+  produit une prédiction ; (ii) le méta-modèle agrège ces prédictions.
+\end{enumerate}
+
+Cette procédure garantit que le méta-modèle a vu des prédictions réalistes (obtenues sur des
+échantillons non vus par les modèles de base), évitant ainsi un surajustement massif.
+
+\paragraph{Reduction du Biais et la Variance }
+Le stacking agit à deux niveaux :
+\begin{itemize}
+  \item \textbf{Réduction du biais}le méta-learner apprend à corriger les erreurs systématiques des base learners en apprenant une combinaison non-linéaire (si le méta est un arbre ou un réseau).
+  \item \textbf{Réduction de la variance} en utilisant des prédictions croisées, il évite le surajustement et agit comme un régulariseur ; la variance finale est souvent inférieure à celle d’un simple vote ou moyenne.
+\end{itemize}
+Mathématiquement, si les erreurs des apprenants de base sont peu corrélées, la variance de la prédiction combinée est proche de
+\[
+  \text{Var}\left(\sum_{i=1}^K w_i h_i(x)\right) \approx \sum_{i=1}^K w_i^2\,\text{Var}(h_i(x)),
+\]
+où $h_i$ désigne un modèle de base et $w_i$ les poids appris par le méta-modèle. Dans le cas d'un simple stacking avec moyenne ($w_i = 1/K$), on retrouve
+\[
+  \text{Var}_{\text{ensemble}} \approx \frac{1}{K} \sum_{i=1}^K \text{Var}\bigl(h_i(x)\bigr)
+\]
+
+
+
+\paragraph{Limites et risques du stacking.}
+Malgré ses qualités, le stacking présente plusieurs limites qu'il faut garder à l'esprit :
+\begin{itemize}
+  \item \textbf{Surapprentissage du méta-modèle} : si les lignes de $Z$ sont trop corrélées à $y$
+  (par exemple en cas de mauvais schéma OOF), le méta-modèle peut mémoriser des
+  patterns propres au jeu d'entraînement plutôt que des relations généralisables.
+  \item \textbf{Coût computationnel} : la génération des prédictions OOF nécessite d'entraîner chaque
+  modèle de base sur plusieurs plis (environ $K \times F$ entraînements), puis d'entraîner le
+  méta-modèle ; cela peut devenir coûteux pour de grands ensembles ou des modèles lourds.
+  \item \textbf{Complexité de déploiement} : en production, il faut maintenir $K$ modèles de base
+  plus le méta-modèle, ce qui complique la mise à jour, la surveillance et l'observabilité.
+  \item \textbf{Interprétabilité réduite} : le système forme une boîte noire à deux niveaux ; il est
+  souvent difficile d'expliquer précisément pourquoi une décision a été prise.
+  \item \textbf{Risque de leakage} : toute fuite d'information dans la génération des prédictions OOF
+  (par exemple partage involontaire de données entre plis) invalide les hypothèses
+  théoriques et peut conduire à un méta-modèle fortement biaisé.
+\end{itemize}
 
 \subsection{Voting (vote majoritaire vs vote probabiliste)}
 
@@ -678,65 +882,6 @@ Le tableau suivant résume quelques caractéristiques essentielles des trois gra
   \end{tabular}
 \end{table}
 
-\section{Aspects architecturaux des systèmes multi-classifieurs}
-
-L'architecture d'un système multi-classifieurs définit la manière dont les informations circulent
-entre les composants et la façon dont les ressources sont exploitées.
-
-\subsection{Architectures de contrôle de flux}
-
-On distingue trois organisations principales :
-
-\begin{enumerate}
-  \item \textbf{Architecture parallèle} : tous les classifieurs opèrent indépendamment et
-  simultanément. La fusion intervient à la fin. Cette structure est neutre (aucun classifieur
-  n'influence les autres) et hautement parallélisable sur du matériel multi-c\oe urs.
-
-  \item \textbf{Architecture séquentielle (en série)} : les classifieurs sont organisés en cascade. Un
-  premier classifieur rapide effectue une prédiction ; s'il échoue ou exprime une faible
-  confiance, l'exemple est passé à un second modèle plus complexe. Cela permet
-  d'économiser des ressources de calcul en ne sollicitant les modèles coûteux que pour les
-  cas difficiles.
-
-  \item \textbf{Architecture hybride} : elle combine les deux approches. Par exemple, un premier étage
-  parallèle peut générer un consensus, dont le résultat est validé par un classifieur de
-  contrôle séquentiel.
-\end{enumerate}
-
-Ces formes peuvent être illustrées par des figures dédiées aux architectures parallèle et
-séquentielle.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.9\textwidth]{chapitre1/figures/Architecture parallele.png}
-  \caption{Architecture parallèle pour un système multi-classifieurs.}
-  \label{fig:mcs-arch-parallel}
-\end{figure}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.9\textwidth]{chapitre1/figures/Architecture sequentielle.png}
-  \caption{Architecture séquentielle pour un système multi-classifieurs.}
-  \label{fig:mcs-arch-sequential}
-\end{figure}
-
-\subsection{Systèmes de sélection dynamique (DS)}
-
-Une tendance majeure consiste à ne pas utiliser tous les classifieurs pour chaque exemple,
-mais à sélectionner \og à la volée \fg{} le ou les modèles les plus compétents~\cite{cruz_deslib_jmlr,deslib_github,ko2007_dynamic_ensemble,esann2014_des_regression,deslib_docs}.
-
-\begin{itemize}
-  \item \textbf{Logique de compétence locale} : on définit une \og région de compétence \fg{} autour d'un
-  exemple test (en utilisant par exemple ses plus proches voisins dans le jeu d'entraînement).
-  On évalue ensuite quels modèles du pool ont été les plus performants dans cette zone
-  spécifique.
-
-  \item \textbf{DCS (dynamic classifier selection)} : on choisit l'unique meilleur modèle pour l'exemple
-  donné.
-
-  \item \textbf{DES (dynamic ensemble selection)} : on construit un sous-ensemble de modèles
-  experts pour cette région particulière.
-\end{itemize}
 
 \section{Avantages et limites de la combinaison}
 
