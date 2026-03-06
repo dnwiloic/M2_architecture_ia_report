@@ -1,9 +1,10 @@
-\chapter{EXPLICABILITÉ DES MODÈLES (MODEL EXPLAINABILITY)}
+% Chapitre 2 : Explicabilité des modèles (inclus depuis main.tex)
+\section{Explicabilité des modèles}
 
 % -----------------------------------------------------------------------------
 % INTRODUCTION DU CHAPITRE
 % -----------------------------------------------------------------------------
-\section*{Introduction}
+\subsection{Introduction}
 
 L’essor des modèles d’apprentissage automatique complexes, en particulier les modèles non linéaires à haute capacité de représentation, a profondément transformé les systèmes de décision automatisés. Les architectures modernes, telles que les réseaux de neurones profonds, les forêts aléatoires, les méthodes de boosting et les ensembles de modèles, permettent d’atteindre des niveaux de performance prédictive élevés, mais au prix d’une perte progressive de transparence et de lisibilité du raisonnement algorithmique.
 
@@ -13,17 +14,16 @@ L’explicabilité des modèles émerge ainsi comme un champ scientifique visant
 
 \vspace{4pt}
 
-\begin{filrouge}
+
 \textbf{Notre cas d'étude.}
 Tout au long de ce chapitre, nous utiliserons un exemple concret: le déploiement d'un modèle pour le \textbf{diagnostic précoce de la maladie rénale chronique} (CKD --- \emph{Chronic Kidney Disease}). Le jeu de données de référence (UCI Machine Learning Repository) contient \textbf{400 patients} décrits par \textbf{24 variables médicales}: taux d'hémoglobine, pression artérielle, gravité spécifique de l'urine, présence de diabète, etc. La variable cible est binaire: CKD présente ou absente. Ce contexte médical illustre parfaitement l'enjeu: un modèle ultra-précis mais inexplicable est inutilisable par un médecin, car une décision thérapeutique engage la vie d'un patient.
-\end{filrouge}
 
 \vspace{8pt}
 
 % -----------------------------------------------------------------------------
 % SECTION 2.1 : DÉFINITION DE L'EXPLICABILITÉ
 % -----------------------------------------------------------------------------
-\section{Définition de l’explicabilité}
+\subsection{Définition de l’explicabilité}
 
 \begin{definition}{Modèle}
 Un modèle d’apprentissage automatique est défini comme une fonction:
@@ -41,7 +41,7 @@ où:
 
 Dans les modèles complexes, la structure interne de la fonction $f$ est non linéaire, distribuée et multidimensionnelle, ce qui rend la relation entre $x$ et $\hat{y}$ non directement intelligible pour un observateur humain.
 
-\subsection{Formulation conceptuelle}
+\subsubsection{Formulation conceptuelle}
 
 L’explicabilité ne cherche pas à modifier le modèle $f$, mais à construire une projection interprétable de son comportement décisionnel. Elle agit comme une transformation:
 \[
@@ -83,7 +83,7 @@ où $\alpha_i$ représente la contribution relative de la variable $x_i$ dans la
 \end{itemize}
 \end{exemple}
 
-\subsection{Positionnement systémique}
+\subsubsection{Positionnement systémique}
 
 L’explicabilité introduit une nouvelle couche fonctionnelle dans les systèmes d’IA:
 \[
@@ -95,7 +95,7 @@ Elle transforme ainsi un système prédictif en un système décisionnel explica
 % -----------------------------------------------------------------------------
 % SECTION 2.2 : INTERPRÉTABILITÉ VS EXPLICABILITÉ
 % -----------------------------------------------------------------------------
-\section{Interprétabilité vs explicabilité}
+\subsection{Interprétabilité vs explicabilité}
 
 Bien que souvent utilisées de manière interchangeable, les notions d’interprétabilité et d’explicabilité renvoient à deux concepts théoriquement distincts.
 
@@ -121,7 +121,7 @@ Chaque coefficient $w_i$ représente directement l’influence de la variable $x
 L’explicabilité désigne la capacité à expliquer un modèle, y compris lorsqu’il est intrinsèquement opaque. Elle est une propriété fonctionnelle externe au modèle, reposant sur une fonction d’explication $E: (f, x) \rightarrow H$.
 \end{definition}
 
-\subsection{Différence structurelle fondamentale}
+\subsubsection{Différence structurelle fondamentale}
 
 \begin{table}[h!]
 \centering
@@ -142,7 +142,7 @@ Complexité admissible & Faible & Élevée \\
 \end{tabularx}
 \end{table}
 
-\subsection{Typologie formelle des modèles}
+\subsubsection{Typologie formelle des modèles}
 
 \begin{enumerate}
     \item \textbf{Modèles interprétables et explicables}: $f \in I \cap E$ \\
@@ -179,7 +179,7 @@ $\rightarrow$ contributions explicatives post-hoc.
 L’interprétabilité est une propriété intrinsèque d’un modèle liée à sa structure interne, tandis que l’explicabilité est une propriété extrinsèque liée à la capacité du système à produire des représentations compréhensibles de son comportement décisionnel.
 \end{pointcle}
 
-\subsection{Conséquence scientifique majeure}
+\subsubsection{Conséquence scientifique majeure}
 
 Cette distinction implique que l’on peut optimiser:
 \begin{itemize}
@@ -201,11 +201,11 @@ où:
 % -----------------------------------------------------------------------------
 % SECTION 2.3 : MÉTHODES D'EXPLICABILITÉ
 % -----------------------------------------------------------------------------
-\section{Méthodes d’explicabilité}
+\subsection{Méthodes d’explicabilité}
 
 Les méthodes d’explicabilité regroupent l’ensemble des techniques permettant de produire des représentations compréhensibles du comportement décisionnel d’un modèle d’apprentissage automatique. Formellement, étant donné un modèle $f: X \rightarrow Y$ et une observation $x \in X$, les méthodes d’explicabilité cherchent à construire une fonction d’explication $E: (f, x) \rightarrow H$.
 
-\subsection{Modèles intrinsèquement interprétables}
+\subsubsection{Modèles intrinsèquement interprétables}
 
 Les modèles intrinsèquement interprétables sont des modèles dont la structure interne est directement compréhensible par un humain, sans nécessiter de mécanisme externe d’explication.
 
@@ -241,7 +241,7 @@ f(x) = \beta_0 + \sum_{i=1}^{n} f_i(x_i)
 Un modèle intrinsèquement interprétable est un modèle dont la structure mathématique permet une lecture directe du raisonnement décisionnel, sans mécanisme externe d’explication.
 \end{pointcle}
 
-\subsection{Méthodes post-hoc}
+\subsubsection{Méthodes post-hoc}
 
 Les méthodes post-hoc désignent l’ensemble des techniques d’explicabilité appliquées après l’entraînement d’un modèle, sans en modifier la structure interne.
 
@@ -285,7 +285,6 @@ où:
     \item $\Omega(g)$: pénalité de complexité du modèle explicatif
 \end{itemize}
 
-\begin{filrouge}
 \textbf{LIME appliqué au diagnostic CKD.}
 Pour un patient avec un taux d'hémoglobine de 9.2 g/dL et une gravité spécifique de 1.010, LIME génère des perturbations locales et apprend un modèle linéaire:
 \[
@@ -293,7 +292,6 @@ g(x) = 0.75 \times \text{hémoglobine} - 0.45 \times \text{gravité} + 0.10 \tim
 \]
 
 Interprétation: l'hémoglobine contribue fortement positivement au risque CKD, la gravité spécifique contribue négativement (plus elle est basse, plus le risque est élevé), l'âge a un effet mineur.
-\end{filrouge}
 
 \begin{attention}
 L'instabilité de LIME est un problème critique en contexte médical. Si deux applications successives sur le même patient donnent des importances contradictoires, le médecin ne peut pas faire confiance à l'explication.
@@ -324,7 +322,6 @@ Pour les ensembles d'arbres, \textbf{TreeSHAP} permet un calcul efficace en temp
 \]
 où $T$ = nombre d'arbres, $L$ = feuilles par arbre, $D$ = profondeur maximale.
 
-\begin{filrouge}
 \textbf{TreeSHAP appliqué au diagnostic CKD.}
 Un nouveau patient est admis avec un score de risque de 88\%. TreeSHAP retourne:
 
@@ -348,7 +345,6 @@ Pression artérielle (normale) & $-0.08$ & Réduit légèrement le risque \\
 
 \vspace{4pt}
 Le médecin voit immédiatement que ce sont principalement le faible taux d'hémoglobine et la gravité spécifique anormale qui drive la prédiction --- des marqueurs physiologiquement cohérents avec la CKD.
-\end{filrouge}
 
 \paragraph{4. PDP \& ICE Plots}
 
@@ -366,22 +362,20 @@ ICE_i(x_s) = f(x_s, x_c^{(i)})
 
 Relation: $PD(x_s) = \frac{1}{N} \sum_{i=1}^{N} ICE_i(x_s)$
 
-\begin{filrouge}
 \textbf{PDP et ICE pour la CKD.}
 \begin{itemize}
     \item PDP: montre qu'en moyenne, le risque CKD diminue quand l'hémoglobine augmente.
     \item ICE: révèle que cette relation est plus marquée chez les patients diabétiques que chez les non-diabétiques, indiquant une interaction entre hémoglobine et diabète.
 \end{itemize}
-\end{filrouge}
 
 % -----------------------------------------------------------------------------
 % SECTION 2.4 : EXPLICABILITÉ LOCALE VS GLOBALE
 % -----------------------------------------------------------------------------
-\section{Explicabilité locale vs globale}
+\subsection{Explicabilité locale vs globale}
 
 L’explicabilité peut être analysée selon deux niveaux complémentaires: locale (centrée sur les décisions individuelles) et globale (orientée vers la compréhension du comportement général du modèle).
 
-\subsection{Explicabilité locale}
+\subsubsection{Explicabilité locale}
 
 L’explicabilité locale vise à expliquer une prédiction spécifique $\hat{y} = f(x)$ en cherchant une fonction explicative locale $g_x$ telle que:
 \[
@@ -398,7 +392,7 @@ L’explicabilité locale vise à expliquer une prédiction spécifique $\hat{y}
 
 \textbf{Méthodes associées:} LIME, SHAP (local), ICE, contre-factuels.
 
-\subsection{Explicabilité globale}
+\subsubsection{Explicabilité globale}
 
 L’explicabilité globale vise à comprendre la structure décisionnelle du modèle sur l'ensemble du domaine:
 \[
@@ -415,7 +409,7 @@ L’explicabilité globale vise à comprendre la structure décisionnelle du mod
 
 \textbf{Méthodes associées:} SHAP (global), PDP, feature importance globale, règles globales.
 
-\subsection{Différences structurelles}
+\subsubsection{Différences structurelles}
 
 \begin{table}[h!]
 \centering
@@ -443,7 +437,7 @@ L'explicabilité complète = explicabilité locale $\oplus$ explicabilité globa
 % -----------------------------------------------------------------------------
 % SECTION 2.5 : CONCLUSION
 % -----------------------------------------------------------------------------
-\section*{Conclusion — Importance décisionnelle, enjeux éthiques et réglementaires}
+\subsection{Conclusion — Importance décisionnelle, enjeux éthiques et réglementaires}
 
 L’explicabilité s’impose aujourd’hui comme une condition structurelle du fonctionnement des systèmes décisionnels fondés sur l’intelligence artificielle. Elle ne constitue plus un simple outil d’analyse, mais un mécanisme de \textbf{gouvernance algorithmique}, garantissant la \textbf{traçabilité}, la \textbf{justification}, l’\textbf{auditabilité} et la \textbf{responsabilité} des décisions automatisées.
 
@@ -465,7 +459,6 @@ L’explicabilité s’impose aujourd’hui comme une condition structurelle du 
 
 \vspace{4pt}
 
-\begin{filrouge}
 \textbf{Enjeux pour le cas CKD.}
 Dans un contexte médical, l'explicabilité n'est pas optionnelle. Elle conditionne:
 \begin{itemize}
@@ -474,7 +467,6 @@ Dans un contexte médical, l'explicabilité n'est pas optionnelle. Elle conditio
     \item \textbf{La conformité légale}: RGPD (droit à l'explication), normes FDA, certifications CE exigent la traçabilité des décisions automatisées.
     \item \textbf{L'acceptabilité sociale}: les patients ont le droit de comprendre pourquoi une décision thérapeutique est prise.
 \end{itemize}
-\end{filrouge}
 
 \vspace{4pt}
 
