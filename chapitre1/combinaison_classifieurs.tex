@@ -444,6 +444,20 @@ classe \texttt{BaggingClassifier} en choisissant simplement l'estimateur de base
 $k$-NN, etc.) et en activant le calcul de la \og OOB score \fg{} pour obtenir automatiquement
 une estimation interne de l'erreur de généralisation.
 
+\paragraph{Limites du bagging.}
+\begin{itemize}
+  \item \textbf{Réduction limitée du biais} : le bagging agit principalement sur la variance ; si les
+  apprenants de base sont fortement biaisés (arbres très peu profonds, modèles linéaires pour
+  des relations hautement non linéaires, etc.), l'ensemble restera sous-ajusté.
+  \item \textbf{Faible gain en cas de forte corrélation} : lorsque les modèles de base sont très corrélés
+  (données peu diversifiées, caractéristiques dominantes, absence de randomisation suffisante),
+  la réduction de variance reste limitée alors que le coût computationnel (entraînement et
+  inférence multipliés par $m$) devient important.
+  \item \textbf{Petits jeux de données et OOB instable} : sur de très petits jeux de données, le
+  bootstrap peut produire des échantillons très similaires, rendant l'estimation OOB instable
+  et réduisant l'intérêt pratique de la méthode.
+\end{itemize}
+
 \subsubsection{Boosting}
 
 Le boosting regroupe une famille de méthodes séquentielles où les modèles sont entraînés les
@@ -630,7 +644,23 @@ Du point de vue pratique, XGBoost et LightGBM sont devenus des standards de fact
 problèmes tabulaires de grande dimension, grâce à leur excellent compromis entre biais (faible)
 et variance contrôlée par une régularisation riche et de nombreux hyperparamètres.
 
-
+\paragraph{Limites du boosting.}
+\begin{itemize}
+  \item \textbf{Sensibilité au bruit et aux outliers} : en se focalisant sur les exemples les plus
+  difficiles, le boosting (en particulier AdaBoost et certains gradient boosting peu régularisés)
+  peut sur-ajuster les observations bruitées ou mal étiquetées et dégrader la généralisation.
+  \item \textbf{Risque de sur-apprentissage} : si l'on choisit des apprenants de base trop complexes
+  ou un nombre d'itérations trop grand sans contrôle (pas d'\emph{early stopping}, régularisation
+  faible, taux d'apprentissage trop élevé), le biais devient très faible mais la variance augmente
+  fortement.
+  \item \textbf{Coût de calcul et complexité de réglage} : les implémentations modernes comme
+  XGBoost et LightGBM atténuent ces effets via la pénalisation des arbres, le sous-échantillonnage
+  et un réglage fin des hyperparamètres, au prix d'une complexité de configuration et d'un coût
+  de calcul parfois élevés.
+  \item \textbf{Interprétabilité limitée} : comme pour la plupart des ensembles d'arbres, l'interprétation
+  globale du modèle reste difficile malgré l'existence d'indicateurs d'importance de variables et
+  d'outils d'explicabilité locale.
+\end{itemize}
 
 \subsubsection{Stacking (stacked generalization)}
 
@@ -940,7 +970,7 @@ Le tableau suivant résume quelques caractéristiques essentielles des trois gra
 \begin{table}[h]
   \centering
   \caption{Comparaison synthétique bagging / boosting / stacking}
-  \begin{tabular}{llll}
+  \begin{tabularx}{\textwidth}{lXlX}
     \toprule
     Critère & Bagging & Boosting & Stacking \\
     \midrule
@@ -969,7 +999,7 @@ Le tableau suivant résume quelques caractéristiques essentielles des trois gra
       & Lent (entraînement en série)
       & Très élevé \\
     \bottomrule
-  \end{tabular}
+  \end{tabularx}
 \end{table}
 
 
