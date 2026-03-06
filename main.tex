@@ -9,13 +9,13 @@
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage[hidelinks]{hyperref}
-
+\usepackage{enumitem}
 % interligne
 \usepackage{setspace}
 \onehalfspacing
 
-% COULEUR 
-\usepackage{color} % où xcolor selon l'installation
+% COULEUR (xcolor requis pour gray!10 utilisé par listings)
+\usepackage{xcolor}
 \definecolor{Valentia}{RGB}{233,78,82}
 \definecolor{Titleblue}{RGB}{0, 0, 255}
 
@@ -27,6 +27,11 @@
 \usepackage{float}  % Pour le placement des figures
 
 \usepackage{enumitem}
+
+
+\usepackage{listings}
+\usepackage{listingsutf8}
+\lstset{inputencoding=utf8,basicstyle=\ttfamily,breaklines=true,backgroundcolor=\color{gray!10}}
 
 % Environnements partagés (chapitres 2 et 3)
 \newenvironment{filrouge}{\par\medskip\color{blue}\itshape}{\par\medskip}

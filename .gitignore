@@ -21,10 +21,13 @@
 build/
 _build/
 latex.out/
+venv/
+exemples/
 
 # Fichiers système / éditeurs
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
 
