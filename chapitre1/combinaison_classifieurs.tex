@@ -1,7 +1,7 @@
 % Chapitre 2 : Combinaison de classifieurs
-\chapter{Combinaison de classifieurs}
+\section{Combinaison de classifieurs}
 
-\section*{Introduction}
+\subsection{Introduction}
 
 L'évolution de l'apprentissage automatique a franchi une étape décisive avec l'émergence des
 systèmes de classifieurs multiples (\emph{Multiple Classifier Systems -- MCS}), plus communément
@@ -20,7 +20,7 @@ qui définissent ce domaine. L'analyse s'attache à montrer comment la diversit�
 rigueur de leur agrégation permettent d'atteindre des niveaux de performance et de robustesse
 inaccessibles aux approches classiques.
 
-\section{Définition et phases de la combinaison de classifieurs}
+\subsection{Définition et phases de la combinaison de classifieurs}
 
 La \textbf{combinaison de classifieurs} est définie comme le processus d'intégration des sorties de
 plusieurs modèles d'apprentissage afin de générer une décision globale plus fiable et précise.
@@ -49,7 +49,7 @@ Le cycle de vie d'un tel système se décompose généralement en trois phases c
   base (niveau d'information en sortie).
 \end{enumerate}
 
-\subsection{Nature des sorties et niveaux d'information}
+\subsubsection{Nature des sorties et niveaux d'information}
 
 L'efficacité de la combinaison dépend de la richesse des informations transmises par les
 modèles individuels. On distingue classiquement trois niveaux de sortie :
@@ -86,13 +86,13 @@ Le tableau suivant présente une comparaison structurelle de ces types d'informa
   \end{tabularx}
 \end{table}
 
-\section{Motivations théoriques et justifications statistiques}
+\subsection{Motivations théoriques et justifications statistiques}
 
 La supériorité des systèmes multi-classifieurs n'est pas une simple observation empirique ; elle
 s'appuie sur des piliers théoriques robustes, notamment le théorème du jury de Condorcet et
 la décomposition biais--variance~\cite{turing_ensemble_learning,analyticsvidhya_ensemble_learning,gfg_ensemble_learning}.
 
-\subsection{Théorème du jury de Condorcet}
+\subsubsection{Théorème du jury de Condorcet}
 
 Formulé à l'origine dans le contexte des sciences sociales, ce théorème constitue une base
 théorique fondamentale pour l'apprentissage d'ensemble~\cite{wikip_jury_theorem,cmu_ensembles_pdf}. Il postule que si un groupe
@@ -108,7 +108,7 @@ la performance globale. Cette démonstration justifie l'utilisation d'\og appren
 pour construire des systèmes puissants, à condition qu'ils soient plus performants qu'un tirage
 aléatoire et qu'ils soient suffisamment indépendants.
 
-\subsection{Décomposition biais--variance}
+\subsubsection{Décomposition biais--variance}
 
 D'un point de vue statistique, l'erreur de généralisation d'un modèle d'apprentissage peut être
 décomposée en trois composantes : le biais au carré, la variance et l'erreur irréductible (bruit)~\cite{wikip_bias_variance,utd_ensemble_lecture}.
@@ -138,7 +138,7 @@ méthodes de type bagging agissent principalement en réduisant la variance par 
 modèles complexes, tandis que les méthodes de boosting se concentrent sur la réduction du
 biais en agrégeant itérativement des modèles simples pour corriger leurs erreurs systématiques.
 
-\subsection{Théorie unifiée de la diversité dans les ensembles}
+\subsubsection{Théorie unifiée de la diversité dans les ensembles}
 
 Une contribution th{\'e}orique importante aux m{\'e}thodes d'ensemble consiste {\`a} faire appara{\^i}tre
 explicitement la diversit{\'e} comme composante de la d{\'e}composition de la perte. Pour une vaste
@@ -210,7 +210,7 @@ de promouvoir la diversit{\'e} dans les ensembles (via le bagging, le boosting, 
 des architectures, etc.) et ouvre sur des g{\'e}n{\'e}ralisations {\`a} d'autres pertes au moyen des divergences
 de Bregman~\cite{kuncheva_diversity_ensemble}.
 
-\subsection{Les problèmes de Dietterich}
+\subsubsection{Les problèmes de Dietterich}
 
 Thomas Dietterich a identifié trois raisons fondamentales expliquant pourquoi un ensemble
 peut surpasser un modèle unique :
@@ -232,12 +232,12 @@ peut surpasser un modèle unique :
   complexes.
 \end{enumerate}
 
-\section{Achirtectures des systèmes multi-classifieurs}
+\subsection{Achirtectures des systèmes multi-classifieurs}
 
 L'architecture d'un système multi-classifieurs définit la manière dont les informations circulent
 entre les composants et la façon dont les ressources sont exploitées.
 
-\subsection{Architectures de contrôle de flux}
+\subsubsection{Architectures de contrôle de flux}
 
 On distingue trois organisations principales :
 
@@ -274,7 +274,7 @@ séquentielle.
   \label{fig:mcs-arch-sequential}
 \end{figure}
 
-\subsection{Systèmes de sélection dynamique (DS)}
+\subsubsection{Systèmes de sélection dynamique (DS)}
 
 Une tendance majeure consiste à ne pas utiliser tous les classifieurs pour chaque exemple,
 mais à sélectionner \og à la volée \fg{} le ou les modèles les plus compétents~\cite{cruz_deslib_jmlr,deslib_github,ko2007_dynamic_ensemble,esann2014_des_regression,deslib_docs}.
@@ -294,12 +294,12 @@ mais à sélectionner \og à la volée \fg{} le ou les modèles les plus compét
 
 
 
-\section{Typologies des méthodes d'ensemble}
+\subsection{Typologies des méthodes d'ensemble}
 
 Les méthodes d'ensemble se divisent principalement en approches parallèles (bagging),
 séquentielles (boosting) et hiérarchiques (stacking)~\cite{mlm_bagging_vs_boosting_vs_stacking,younas_bagging_boosting_stacking,nsacademy_what_is_ensemble}.
 
-\subsection{Bagging (bootstrap aggregating)}
+\subsubsection{Bagging (bootstrap aggregating)}
 
 Le bagging (pour \emph{bootstrap aggregating}) vise à réduire la variance en entraînant plusieurs
 modèles indépendants en parallèle sur des échantillons de données légèrement différents.
@@ -426,7 +426,7 @@ figure~\ref{fig:rf-overview}.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=0.7\textwidth]{chapitre1/figures/Aperçu de l'algorithme Random Forest(.png}
+  \includegraphics[width=0.7\textwidth]{chapitre1/figures/Apercu_Random_Forest.png}
   \caption{Aperçu de l'algorithme Random Forest.}
   \label{fig:rf-overview}
 \end{figure}
@@ -444,7 +444,7 @@ classe \texttt{BaggingClassifier} en choisissant simplement l'estimateur de base
 $k$-NN, etc.) et en activant le calcul de la \og OOB score \fg{} pour obtenir automatiquement
 une estimation interne de l'erreur de généralisation.
 
-\subsection{Boosting}
+\subsubsection{Boosting}
 
 Le boosting regroupe une famille de méthodes séquentielles où les modèles sont entraînés les
 uns après les autres, chacun se concentrant sur les erreurs commises par les précédents. Contrairement
@@ -632,7 +632,7 @@ et variance contrôlée par une régularisation riche et de nombreux hyperparam�
 
 
 
-\subsection{Stacking (stacked generalization)}
+\subsubsection{Stacking (stacked generalization)}
 
 Le stacking, ou \emph{stacked generalization}, est une méthode d'ensemble à deux niveaux où un
 modèle dit \emph{méta-modèle} apprend comment combiner au mieux les prédictions de plusieurs
@@ -803,7 +803,7 @@ Malgré ses qualités, le stacking présente plusieurs limites qu'il faut garder
   théoriques et peut conduire à un méta-modèle fortement biaisé.
 \end{itemize}
 
-\subsection{Voting (vote majoritaire vs vote probabiliste)}
+\subsubsection{Voting (vote majoritaire vs vote probabiliste)}
 
 Le vote est la méthode de fusion la plus simple pour les modèles parallèles~\cite{codefinity_voting,gfg_voting_classifier}.
 
@@ -840,7 +840,7 @@ En hard voting, la classe \og chat \fg{} (deux voix) l'emporte. En soft voting, 
 La décision finale est alors \og chien \fg{} : la forte conviction du modèle 3 compense l'incertitude
 des deux autres.
 
-\section{Analyse comparative des approches}
+\subsection{Analyse comparative des approches}
 
 Le choix d'une méthode d'ensemble dépend des contraintes du projet (volume de données,
 temps de réponse, précision requise, robustesse au bruit, coût de calcul, etc.).
@@ -883,9 +883,9 @@ Le tableau suivant résume quelques caractéristiques essentielles des trois gra
 \end{table}
 
 
-\section{Avantages et limites de la combinaison}
+\subsection{Avantages et limites de la combinaison}
 
-\subsection{Avantages}
+\subsubsection{Avantages}
 
 \begin{enumerate}
   \item \textbf{Précision supérieure} : les ensembles dépassent quasi systématiquement les modèles
@@ -898,7 +898,7 @@ Le tableau suivant résume quelques caractéristiques essentielles des trois gra
   en sous-tâches traitées par des experts dédiés (\emph{divide and conquer}).
 \end{enumerate}
 
-\subsection{Limites}
+\subsubsection{Limites}
 
 \begin{enumerate}
   \item \textbf{Coût en ressources} : l'entraînement de dizaines ou de centaines de modèles consomme
@@ -911,7 +911,7 @@ Le tableau suivant résume quelques caractéristiques essentielles des trois gra
   demande une infrastructure plus lourde qu'un modèle monolithique.
 \end{enumerate}
 
-\section*{Conclusion}
+\subsection{Conclusion}
 
 La combinaison de classifieurs représente une approche mature et extrêmement puissante de
 l'apprentissage automatique. En orchestrant judicieusement la diversité et en s'appuyant sur

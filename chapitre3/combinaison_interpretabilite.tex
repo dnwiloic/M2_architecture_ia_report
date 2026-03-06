@@ -1,7 +1,7 @@
 % Chapitre 3 : Combinaison de classifieurs et explicabilité
-\chapter{Combinaison de classifieurs et explicabilité}
+\section{Combinaison de classifieurs et explicabilité}
 
-\section*{Introduction}
+\subsection{Introduction}
 
 Ce chapitre explore la relation entre les méthodes d'ensemble --- qui combinent plusieurs
 modèles pour obtenir de meilleures prédictions --- et l'explicabilité en apprentissage
@@ -26,7 +26,6 @@ entier dédié à rendre les décisions algorithmiques compréhensibles.
 
 \vspace{4pt}
 
-\begin{filrouge}
 \noindent\textbf{Notre cas d'étude.}
 Tout au long de ce chapitre, nous utiliserons un exemple concret: le déploiement d'un
 modèle d'ensemble pour le \textbf{diagnostic précoce de la maladie rénale chronique}
@@ -37,16 +36,15 @@ présence de diabète, etc. La variable cible est binaire: CKD présente ou abse
 Ce contexte médical illustre parfaitement l'enjeu: un modèle ultra-précis mais
 inexplicable est inutilisable par un médecin, car une décision thérapeutique engage
 la vie d'un patient.
-\end{filrouge}
 
 \vspace{8pt}
 
 % ═══════════════════════════════════════════════════════════════════════════════
-\section{Le Problème de la Boîte Noire}
+\subsection{Le Problème de la Boîte Noire}
 \label{sec:boite_noire}
 
 % ─── 5.1.1 ────────────────────────────────────────────────────────────────────
-\subsection{Qu'est-ce qu'une boîte noire en Machine Learning~?}
+\subsubsection{Qu'est-ce qu'une boîte noire en Machine Learning~?}
 
 \begin{definition}{Boîte noire (\emph{Black Box})}
 Un modèle est dit \textbf{boîte noire} lorsque la logique reliant ses entrées (les données
@@ -87,7 +85,7 @@ En apprentissage automatique, la \textbf{transparence} s'évalue selon trois niv
 \end{enumerate}
 
 % ─── 5.1.2 ────────────────────────────────────────────────────────────────────
-\subsection{Comment l'agrégation crée-t-elle l'opacité~?}
+\subsubsection{Comment l'agrégation crée-t-elle l'opacité~?}
 
 Un arbre de décision isolé et peu profond est parfaitement lisible. Par exemple:
 
@@ -124,7 +122,7 @@ même si chaque pièce était compréhensible séparément.
 \end{attention}
 
 % ─── 5.1.3 ────────────────────────────────────────────────────────────────────
-\subsection{Pourquoi l'explicabilité est-elle indispensable~?}
+\subsubsection{Pourquoi l'explicabilité est-elle indispensable~?}
 
 L'opacité des ensembles n'est pas qu'un problème académique: elle a des
 conséquences \textbf{légales}, \textbf{éthiques} et \textbf{cliniques} directes.
@@ -163,7 +161,6 @@ d'explicabilité.
 
 \vspace{4pt}
 
-\begin{filrouge}
 \noindent\textbf{Le mur de l'adoption clinique.}
 Un nephrologue expérimenté refuse légitimement de modifier le traitement d'un
 patient uniquement sur la base d'une équation opaque
@@ -172,12 +169,11 @@ Il doit pouvoir vérifier que le modèle s'appuie sur des biomarqueurs
 physiologiquement pertinents (hémoglobine, créatinine, gravité spécifique)
 et non sur des artefacts du jeu de données. C'est précisément le r\^ole de
 l'XAI: déverrouiller la boîte noire pour instaurer une confiance scientifique.
-\end{filrouge}
 
 \vspace{8pt}
 
 % ═══════════════════════════════════════════════════════════════════════════════
-\section{Complexité des Ensembles de Modèles}
+\subsection{Complexité des Ensembles de Modèles}
 \label{sec:complexite}
 
 \noindent
@@ -186,7 +182,7 @@ Comprendre pourquoi les ensembles sont opaques nécessite d'examiner leur
 à mémoriser les données, et la dynamique algorithmique qui les construit.
 
 % ─── 5.2.1 ────────────────────────────────────────────────────────────────────
-\subsection{La dimension VC: mesurer la capacité d'un modèle}
+\subsubsection{La dimension VC: mesurer la capacité d'un modèle}
 
 \begin{definition}{Dimension de Vapnik-Chervonenkis (Dimension VC)}
 La \textbf{dimension VC} mesure la richesse d'un modèle: c'est le nombre maximal
@@ -219,7 +215,7 @@ l'ordre $k-1$. Cela a un double bénéfice:
 \end{itemize}
 
 % ─── 5.2.2 ────────────────────────────────────────────────────────────────────
-\subsection{La borne de généralisation: pourquoi la complexité nuit à l'explication}
+\subsubsection{La borne de généralisation: pourquoi la complexité nuit à l'explication}
 
 La théorie de l'apprentissage statistique nous donne une garantie mathématique
 importante: l'erreur réelle d'un modèle (sur des données qu'il n'a jamais vues)
@@ -249,7 +245,7 @@ rendre ses décisions plus compréhensibles.
 \end{pointcle}
 
 % ─── 5.2.3 ────────────────────────────────────────────────────────────────────
-\subsection{Bagging et Boosting: deux architectures, deux types de complexité}
+\subsubsection{Bagging et Boosting: deux architectures, deux types de complexité}
 
 Les deux grandes familles d'ensembles abordent la complexité de manières
 fondamentalement différentes. Le tableau~\ref{tab:bagging_boosting} synthétise
@@ -313,7 +309,6 @@ pour éviter l'explosion de la variance.
 
 \vspace{4pt}
 
-\begin{filrouge}
 \noindent\textbf{Gestion de la complexité sur les données CKD.}
 Avec seulement 400 patients et 24 variables, le risque de surapprentissage
 est élevé. Un XGBoost mal configuré mémoriserait les particularités des
@@ -327,12 +322,11 @@ est élevé. Un XGBoost mal configuré mémoriserait les particularités des
 Ces contraintes ont un double effet positif: elles préviennent le surapprentissage
 \emph{et} rendent les contributions des biomarqueurs clés (hémoglobine, gravité
 spécifique) plus stables et plus isolables par les méthodes XAI.
-\end{filrouge}
 
 \vspace{8pt}
 
 % ═══════════════════════════════════════════════════════════════════════════════
-\section{Stratégies d'Explicabilité des Ensembles (XAI)}
+\subsection{Stratégies d'Explicabilité des Ensembles (XAI)}
 \label{sec:xai}
 
 \noindent
@@ -342,7 +336,7 @@ en extraire du sens. Nous les présentons ici avec leurs fondements, leurs force
 et leurs limites, illustrées sur le cas CKD.
 
 % ─── 5.3.1 ────────────────────────────────────────────────────────────────────
-\subsection{Les valeurs SHAP: une explication fondée sur la théorie des jeux}
+\subsubsection{Les valeurs SHAP: une explication fondée sur la théorie des jeux}
 
 \begin{definition}{SHAP --- SHapley Additive exPlanations}
 \textbf{SHAP} est une méthode qui attribue à chaque variable d'entrée une
@@ -418,7 +412,6 @@ où $T$ = nombre d'arbres, $L$ = feuilles par arbre, $D$ = profondeur maximale.
 Sur un XGBoost entraîné pour la CKD, cela réduit le temps de calcul de
 \emph{plusieurs heures} à \emph{quelques millisecondes}.
 
-\begin{filrouge}
 \noindent\textbf{TreeSHAP appliqué au diagnostic CKD.}
 Un nouveau patient est admis avec un score de risque de 88\,\%. Le médecin
 lance le module TreeSHAP, qui retourne en quelques millisecondes:
@@ -447,10 +440,9 @@ Le médecin voit immédiatement que c'est principalement le \textbf{faible taux
 d'hémoglobine} couplé à une \textbf{gravité spécifique anormale} qui drive la
 prédiction --- des marqueurs physiologiquement cohérents avec la CKD. La boîte
 noire est déverrouillée.
-\end{filrouge}
 
 % ─── 5.3.2 ────────────────────────────────────────────────────────────────────
-\subsection{LIME: une explication locale par approximation linéaire}
+\subsubsection{LIME: une explication locale par approximation linéaire}
 
 \begin{definition}{LIME --- Local Interpretable Model-agnostic Explanations}
 \textbf{LIME} explique une prédiction individuelle en construisant un
@@ -509,7 +501,7 @@ dans les contextes à hauts enjeux.
 \end{attention}
 
 % ─── 5.3.3 ────────────────────────────────────────────────────────────────────
-\subsection{Extraction de règles globales: de la forêt aux règles médicales (SIRUS)}
+\subsubsection{Extraction de règles globales: de la forêt aux règles médicales (SIRUS)}
 
 TreeSHAP et LIME fournissent des explications \textbf{locales} (par patient).
 Mais comment obtenir une vue \textbf{globale} du comportement d'un ensemble~?
@@ -533,7 +525,6 @@ ce problème en:
   stabilité via un indice de Dice-Sørensen.
 \end{enumerate}
 
-\begin{filrouge}
 \noindent\textbf{SIRUS appliqué au diagnostic CKD.}
 L'hôpital souhaite un \textbf{protocole de tri rapide} aux urgences, sans
 serveur de calcul. L'algorithme SIRUS extrait 4 règles cliniques fondamentales
@@ -557,10 +548,9 @@ Ces 4 règles, dérivées mathématiquement de millions de n\oe uds de la forêt
 sont mémorisables et intégrables dans un manuel médical. Elles ne couvrent pas
 tous les cas (d'où la règle~4), mais capturent les situations les plus fréquentes
 avec une précision validée.
-\end{filrouge}
 
 % ─── 5.3.4 ────────────────────────────────────────────────────────────────────
-\subsection{Distillation de connaissances: enseigner la transparence}
+\subsubsection{Distillation de connaissances: enseigner la transparence}
 
 \begin{definition}{Distillation de connaissances (\emph{Knowledge Distillation})}
 La \textbf{distillation} consiste à entraîner un modèle simple et interprétable
@@ -583,7 +573,6 @@ acquiert implicitement cette sagesse.
 
 \vspace{4pt}
 
-\begin{filrouge}
 \noindent\textbf{Distillation pour le déploiement mobile CKD (Edge AI).}
 Des médecins itinérants dans des zones rurales disposent de simples tablettes
 sans connexion cloud. Déployer un XGBoost de 300 arbres est impossible (ressources
@@ -599,7 +588,6 @@ insuffisantes). La solution:
   rapide, et bien plus précis qu'un arbre entraîné directement sur les données
   brutes, car il bénéficie de la sagesse de l'ensemble professeur.
 \end{enumerate}
-\end{filrouge}
 
 \vspace{4pt}
 
@@ -623,7 +611,7 @@ Distillation & Globale & Modèle transparent autonome & Peut manquer la précisi
 \vspace{8pt}
 
 % ═══════════════════════════════════════════════════════════════════════════════
-\section{Compromis Performance–Compréhension}
+\subsection{Compromis Performance–Compréhension}
 \label{sec:compromis}
 
 \noindent
@@ -633,7 +621,7 @@ objectifs qui peuvent entrer en conflit. Ce compromis, longtemps perçu comme
 inévitable, est aujourd'hui beaucoup mieux compris --- et partiellement dépassé.
 
 % ─── 5.4.1 ────────────────────────────────────────────────────────────────────
-\subsection{Le front de Pareto: visualiser le compromis}
+\subsubsection{Le front de Pareto: visualiser le compromis}
 
 \begin{definition}{Optimisation multi-objectif et front de Pareto}
 Lorsqu'on cherche simultanément à minimiser deux objectifs antagonistes (ici:
@@ -677,7 +665,7 @@ Les trois derniers termes mesurent l'interprétabilité:
 \end{itemize}
 
 % ─── 5.4.2 ────────────────────────────────────────────────────────────────────
-\subsection{Quantifier l'interprétabilité: les métriques de fidélité et stabilité}
+\subsubsection{Quantifier l'interprétabilité: les métriques de fidélité et stabilité}
 
 Pour comparer objectivement des méthodes d'explicabilité, il faut des métriques
 précises. Les deux plus importantes sont:
@@ -731,7 +719,7 @@ elles peuvent générer un \emph{paravent} de transparence cachant un biais rée
 \end{attention}
 
 % ─── 5.4.3 ────────────────────────────────────────────────────────────────────
-\subsection{Les modèles hybrides: fusionner performance et transparence}
+\subsubsection{Les modèles hybrides: fusionner performance et transparence}
 
 Une approche élégante pour naviguer sur le front de Pareto consiste à concevoir
 un modèle dont la prédiction est explicitement décomposée en deux parties:
@@ -755,7 +743,7 @@ et de cantonner $g^*$ à un rôle de correction mineure. On y parvient en pénal
 plus fortement la complexité de $g^*$ que celle de $f^*$ lors de l'entraînement.
 
 % ─── 5.4.4 ────────────────────────────────────────────────────────────────────
-\subsection{Les EBM: des ensembles intrinsèquement transparents}
+\subsubsection{Les EBM: des ensembles intrinsèquement transparents}
 
 L'\textbf{Explainable Boosting Machine} (EBM), développée par Microsoft Research,
 représente l'état de l'art en matière de modèles \emph{Glass-Box}: des modèles
@@ -813,9 +801,8 @@ et auditée.
 \end{pointcle}
 
 % ─── 5.4.5 ────────────────────────────────────────────────────────────────────
-\subsection{Cas fil rouge: atteindre l'optimum de Pareto pour le déploiement CKD}
+\subsubsection{Cas fil rouge: atteindre l'optimum de Pareto pour le déploiement CKD}
 
-\begin{filrouge}
 \noindent\textbf{De la boîte noire au modèle cliniquement déployable.}
 
 \noindent\textbf{Situation initiale.} L'équipe entraîne un XGBoost sur les 24
@@ -875,9 +862,8 @@ Ce résultat illustre le message central de ce chapitre: intégrer l'explicabili
 dès la conception du modèle n'est pas un frein à la performance, mais le
 \textbf{catalyseur} permettant au Machine Learning de franchir le fossé entre la
 recherche en laboratoire et le déploiement clinique réel.
-\end{filrouge}
 
-\section*{Conclusion}
+\subsection{Conclusion}
 
 Ce chapitre a exploré la tension entre performance et explicabilité dans les
 méthodes d'ensemble. Voici les points à retenir:

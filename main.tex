@@ -14,22 +14,56 @@
 \usepackage{setspace}
 \onehalfspacing
 
-% COULEUR 
-\usepackage{color} % où xcolor selon l'installation
+% COULEUR
+\usepackage{color}
 \definecolor{Valentia}{RGB}{233,78,82}
 \definecolor{Titleblue}{RGB}{0, 0, 255}
 
 \usepackage{geometry}
-\geometry{margin=2.5cm}
+\geometry{margin=2.5cm, headheight=14pt}
 
-\usepackage{graphicx}  % Pour les images
-\usepackage{amsmath, amssymb}  % Pour les maths
-\usepackage{float}  % Pour le placement des figures
+% En-tête et pied de page sur toutes les pages
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textit{Architecture des Systèmes Intelligents}}
+\fancyhead[R]{\textit{Combinaison de classeurs, explicabilité des modèles}}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyfoot[L]{Université De Dschang}
+\fancyfoot[C]{\thepage}
+\fancyfoot[R]{2025 - 2026}
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyhead[L]{\textit{Architecture des Systèmes Intelligents}}
+  \fancyhead[R]{\textit{Combinaison de classeurs, explicabilité des modèles}}
+  \renewcommand{\headrulewidth}{0.4pt}
+  \fancyfoot[L]{Université De Dschang}
+  \fancyfoot[C]{\thepage}
+  \fancyfoot[R]{2025 - 2026}
+}
 
+\usepackage{float}
 \usepackage{enumitem}
 
+% Numérotation des sections en 1, 2, 3 (sans chapitre)
+\renewcommand{\thesection}{\arabic{section}}
+\numberwithin{figure}{section}
+\numberwithin{table}{section}
+
+% Espacement des titres (sections)
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{2.5ex plus .2ex}{1.5ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{2ex plus .2ex}{1ex plus .2ex}
+\titlespacing*{\subsubsection}{0pt}{1.5ex plus .2ex}{0.8ex plus .2ex}
+
+% Profondeur de la table des matières
+\setcounter{tocdepth}{3}
+
+% Indentation et listes
+\setlength{\parindent}{1.5em}
+\setlist{leftmargin=*, itemsep=2pt}
+
 % Environnements partagés (chapitres 2 et 3)
-\newenvironment{filrouge}{\par\medskip\color{blue}\itshape}{\par\medskip}
 \newenvironment{definition}[1]{\par\medskip\paragraph{Définition (#1).}\leavevmode\noindent}{\par\medskip}
 \newenvironment{pointcle}{\par\medskip\paragraph{Point clé.}\leavevmode\noindent}{\par\medskip}
 \newenvironment{attention}{\par\medskip\paragraph{Attention.}\leavevmode\noindent}{\par\medskip}
@@ -37,18 +71,20 @@
 
 \newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
 
-
-\title{Combinaison de classifieurs et méthodes d'ensemble}
+\title{Combinaison de classeurs, explicabilité des modèles}
 \author{DNJOMOU YONMBA WILFRIED LOIC  \\
 KENFACK LEONEL \\
 SAGUEU WAKAM DILANE \\}
 \date{Mars 2025}
 
 \begin{document}
+\widowpenalty=3000
+\clubpenalty=3000
 
 \begin{titlepage}
+    \thispagestyle{empty}
     \centering
-    \includegraphics[width=\textwidth]{entete.png}\\[2.0cm]  
+    \includegraphics[width=\textwidth]{entete.png}\\[2.0cm]
 
     \textsc{Architecture des Systèmes Intelligents}\\[0.5cm]
 
@@ -56,7 +92,7 @@ SAGUEU WAKAM DILANE \\}
     \HRule \\[0.4cm]
     \color{Titleblue}
     \fontsize{20}{23.4}\selectfont
-    \huge \bfseries Combinaison de classifieurs et méthodes d'ensemble \\[0.4cm]
+    \huge \bfseries Combinaison de classeurs, explicabilité des modèles \\[0.4cm]
     \color{black}
 
     \HRule \\[0.4cm]
@@ -68,12 +104,12 @@ SAGUEU WAKAM DILANE \\}
     \fontsize{15}{18}\selectfont
     \color{black}
     \textbf{Présenté par :}\\[0.5cm]
-    
+
     \begin{tabular}{l l}
         \textbf{DNJOMOU YONMBA WILFRIED LOIC} & \textbf{CM-UDS-24SCI0999} \\
         \textbf{KENFACK LEONEL} & \textbf{CM-UDS-17SCI0998} \\
         \textbf{SAGUEU WAKAM DILANE} & \textbf{CM-UDS-24SCI1040} \\
-        \textbf{NZOGNING MBONDA SOCRATE} & \textbf{CM-UDS-24SCI1040} \\
+        \textbf{NZOGNING MBONDA SOCRATE} & \textbf{CM-UDS-19SCI2910} \\
     \end{tabular}
 
     \vspace{1cm}
@@ -84,31 +120,36 @@ SAGUEU WAKAM DILANE \\}
     \textbf{Superviseur :} Pr. KENGNE TCHENDJI Vianney\\[0.5cm]
 
     \vfill
-    
+
     \hrulefill
 
     \vspace{5mm}
-    
+
     \centering{\large{\bf Année académique 2025-2026 }}
 \end{titlepage}
 
 \tableofcontents
+\newpage
 
-% Chapitre 0 : Introduction
+% Introduction
+\newpage
 \include{introduction_generale/introduction}
-% Chapitre 1 : Combinaison de classifieurs
+% Partie 1 : Combinaison de classifieurs
+\newpage
 \include{chapitre1/combinaison_classifieurs}
-% Chapitre 2 : Combinaison de classifieurs
+% Partie 2 : Explicabilité
+\newpage
 \include{chapitre2/interpretabilite}
-% Chapitre 3 : Combinaison de classifieurs
+% Partie 3 : Combinaison et explicabilité
+\newpage
 \include{chapitre3/combinaison_interpretabilite}
 % Conclusion
+\newpage
 \include{conclusion/conclusion}
 
-
-
+\newpage
+\renewcommand{\refname}{Références}
 \bibliographystyle{plain}
 \bibliography{bibliographie}
 
 \end{document}
-
