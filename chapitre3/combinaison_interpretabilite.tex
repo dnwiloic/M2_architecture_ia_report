@@ -1,891 +1,894 @@
-% Chapitre 3 : Combinaison de classifieurs et explicabilité
-\section{Combinaison de classifieurs et explicabilité}
+﻿% Chapitre 3 : Combinaison de classifieurs et explicabilité
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Combinaison de Classifieurs et Explicabilité}
+% ═══════════════════════════════════════════════════════════════════════════════
 
-\subsection{Introduction}
+\begin{quote}
+\itshape
+« Un modèle qui prédit bien mais que personne ne comprend est aussi dangereux qu'un modèle
+qui ne prédit pas du tout. »
+\end{quote}
 
-Ce chapitre explore la relation entre les méthodes d'ensemble --- qui combinent plusieurs
-modèles pour obtenir de meilleures prédictions --- et l'explicabilité en apprentissage
-automatique. Nous verrons pourquoi ces modèles, bien que très performants, deviennent
-difficiles à interpréter, comment mesurer et maîtriser leur complexité, quelles stratégies
-existent pour les expliquer, et comment trouver le bon équilibre entre performance et
-compréhension. Chaque concept est illustré par un cas concret: le diagnostic précoce de
-la maladie rénale chronique (CKD).
+\vspace{0.5em}
 
-L'apprentissage automatique moderne est traversé par une tension fondamentale: la quête
-d'une précision maximale s'oppose souvent à l'exigence de transparence et de
-compréhensibilité. Au c\oe ur de cette tension se trouvent les \textbf{méthodes d'ensemble}
-(ou \emph{combinaisons de classeurs}), qui agrègent plusieurs modèles pour former un système
-hautement performant.
-
-Des algorithmes comme les \emph{Random Forests}, le \emph{Gradient Boosting} ou le
-\emph{Stacking} dominent les compétitions de Machine Learning sur données tabulaires.
-Cependant, leur puissance s'accompagne d'une \textbf{opacité systémique}: plus un modèle
-d'ensemble est précis, moins il est facile à expliquer. Cette réalité a conduit au
-développement de l'\emph{eXplainable Artificial Intelligence} (\textbf{XAI}), un domaine
-entier dédié à rendre les décisions algorithmiques compréhensibles.
-
-\vspace{4pt}
-
-\noindent\textbf{Notre cas d'étude.}
-Tout au long de ce chapitre, nous utiliserons un exemple concret: le déploiement d'un
-modèle d'ensemble pour le \textbf{diagnostic précoce de la maladie rénale chronique}
-(CKD --- \emph{Chronic Kidney Disease}). Le jeu de données de référence (UCI Machine
-Learning Repository) contient \textbf{400 patients} décrits par \textbf{24 variables
-médicales}: taux d'hémoglobine, pression artérielle, gravité spécifique de l'urine,
-présence de diabète, etc. La variable cible est binaire: CKD présente ou absente.
-Ce contexte médical illustre parfaitement l'enjeu: un modèle ultra-précis mais
-inexplicable est inutilisable par un médecin, car une décision thérapeutique engage
-la vie d'un patient.
-
-\vspace{8pt}
+Ce chapitre aborde une tension centrale de l'apprentissage automatique moderne~: les méthodes
+les plus performantes — appelées \textit{ensembles de classifieurs} ou \textit{méthodes d'ensemble}
+— sont précisément les plus difficiles à interpréter. Nous commencerons par comprendre pourquoi
+le regroupement de plusieurs modèles crée un problème dit de \og boîte noire \fg{}, puis nous
+analyserons les sources mathématiques de cette complexité, avant d'explorer en détail les
+stratégies permettant de réconcilier performance et transparence.
 
 % ═══════════════════════════════════════════════════════════════════════════════
-\subsection{Le Problème de la Boîte Noire}
-\label{sec:boite_noire}
+\subsection{Le Problème de la Boîte Noire dans les Ensembles}
+% ═══════════════════════════════════════════════════════════════════════════════
 
-% ─── 5.1.1 ────────────────────────────────────────────────────────────────────
-\subsubsection{Qu'est-ce qu'une boîte noire en Machine Learning~?}
+\subsubsection{Qu'est-ce qu'une boîte noire en apprentissage automatique ?}
 
-\begin{definition}{Boîte noire (\emph{Black Box})}
-Un modèle est dit \textbf{boîte noire} lorsque la logique reliant ses entrées (les données
-du patient, par exemple) à ses sorties (la prédiction) est trop complexe pour être
-comprise directement par un être humain, même si la prédiction est correcte.
-\end{definition}
+Un modèle de machine learning est dit \textbf{boîte noire} (black box) lorsque sa structure
+interne est trop complexe pour qu'un être humain puisse suivre mentalement le chemin de la
+décision. On lui fournit des données en entrée, on obtient une prédiction en sortie, mais le
+raisonnement intermédiaire reste opaque.
 
-\noindent
-Pour bien saisir ce concept, partons d'une analogie simple. Imaginez deux médecins:
+\paragraph{Définition (Boîte noire (Black Box)).}
+Un modèle $f : \mathcal{X} \rightarrow \mathcal{Y}$ est qualifié de \textbf{boîte noire}
+lorsqu'il est impossible, en pratique, pour un observateur humain de reconstituer le processus
+de décision complet à partir de la représentation interne du modèle, même en ayant accès
+à tous ses paramètres.
 
-\begin{itemize}
-  \item \textbf{Médecin A} dit: ``Le taux d'hémoglobine de votre patient est à 9\,g/dL,
-  ce qui est bien en dessous du seuil de 12\,g/dL. Combiné à une gravité spécifique
-  anormale de 1.010, je diagnostique une insuffisance rénale.''
-  \item \textbf{Médecin B} dit: ``Mon algorithme donne un score de 0.88. Je ne sais pas
-  exactement pourquoi, mais il dit CKD.''
-\end{itemize}
+L'opposition classique se fait entre les modèles \textit{interprétables par conception}
+(un arbre de décision de profondeur 3, une régression linéaire) et les modèles \textit{opaques
+par nature} (un réseau de neurones profond, une forêt aléatoire de 500 arbres).
 
-\noindent
-Le médecin A raisonne de manière \textbf{transparente}: son raisonnement est traçable,
-vérifiable, contestable. Le médecin B incarne la boîte noire: la prédiction existe,
-mais la logique est invisible.
+\subsubsection{Pourquoi les ensembles de classifieurs deviennent-ils des boîtes noires ?}
 
-En apprentissage automatique, la \textbf{transparence} s'évalue selon trois niveaux:
+Imaginons un étudiant qui doit décider si une image médicale montre une tumeur bénigne
+ou maligne. S'il consulte un seul médecin, il peut suivre son raisonnement pas à pas.
+S'il consulte simultanément 1\,000 médecins et combine leurs avis selon une règle mathématique
+complexe, il devient impossible de retracer la logique de la décision finale.
+
+C'est exactement ce qui se passe avec les méthodes d'ensemble. Elles combinent plusieurs
+modèles — appelés \textit{classifieurs de base} ou \textit{apprenants faibles} — pour
+produire une prédiction plus robuste. Il existe trois grandes familles~:
 
 \begin{enumerate}
-  \item \textbf{Simulabilité}: un humain peut-il refaire mentalement le calcul du modèle~?
-  Un arbre de décision de 5 nœuds est simulable. Une forêt de 500 arbres ne l'est pas.
+  \item \textbf{Bagging (Bootstrap Aggregating)~:} les modèles sont entraînés en parallèle sur
+        des sous-échantillons aléatoires du jeu de données d'entraînement. Exemple canonique~:
+        la \textit{Forêt Aléatoire} (Random Forest).
 
-  \item \textbf{Décomposabilité}: chaque paramètre du modèle a-t-il une signification
-  intuitive~? Dans une régression linéaire, le coefficient associé au taux d'hémoglobine
-  est directement interprétable. Dans un ensemble de 300 arbres, ce n'est plus le cas.
+  \item \textbf{Boosting~:} les modèles sont entraînés séquentiellement, chaque nouveau modèle
+        cherchant à corriger les erreurs du précédent. Exemples~: AdaBoost, Gradient Boosting,
+        XGBoost, LightGBM.
 
-  \item \textbf{Transparence algorithmique}: peut-on prouver mathématiquement comment
-  l'algorithme converge~? La régression logistique a une surface d'erreur convexe avec
-  un minimum global unique: sa convergence est prouvable. Les ensembles profonds n'ont
-  pas cette propriété.
+  \item \textbf{Stacking (Stacked Generalization)~:} les prédictions des modèles de base sont
+        utilisées comme entrées d'un modèle de second niveau (\textit{méta-apprenant}) qui
+        apprend à les combiner de façon optimale.
 \end{enumerate}
 
-% ─── 5.1.2 ────────────────────────────────────────────────────────────────────
-\subsubsection{Comment l'agrégation crée-t-elle l'opacité~?}
+\paragraph{Remarque (Pourquoi l'opacité est-elle dangereuse ?).}
+Dans des domaines critiques comme la médecine (diagnostic de cancer), la finance (octroi
+de crédit) ou la justice (aide à la décision judiciaire), un modèle opaque est problématique
+car~: (1) il est impossible d'identifier et corriger des biais discriminatoires~; (2) les
+réglementations (comme le RGPD en Europe) exigent un \og droit à l'explication \fg{}~;
+(3) les experts métiers ne peuvent pas valider la cohérence du raisonnement.
 
-Un arbre de décision isolé et peu profond est parfaitement lisible. Par exemple:
+\subsubsection{L'effet cascade de l'agrégation}
 
-\vspace{4pt}
-\begin{center}
-  \textit{SI hémoglobine $< 12$ \textbf{ET} gravité spécifique $< 1.015$
-  \textbf{ALORS} CKD probable}
-\end{center}
-\vspace{4pt}
-
-\noindent
-Ce chemin logique peut être suivi par n'importe quel médecin. Mais dès que l'on
-agrège \textbf{plusieurs centaines} de tels arbres --- comme dans une Random Forest
-ou un Gradient Boosting --- la prédiction finale devient:
+La décision finale d'un ensemble de $M$ classifieurs $\{h_1, h_2, \ldots, h_M\}$ pour
+un vote majoritaire simple s'écrit~:
 
 \begin{equation}
-  \hat{y} \;=\; \sum_{m=1}^{M} h_m(x)
-  \label{eq:ensemble_sum}
+  \hat{y}(\mathbf{x}) = \underset{c \in \mathcal{C}}{\arg\max}
+  \sum_{m=1}^{M} \mathbf{1}\bigl[h_m(\mathbf{x}) = c\bigr]
+  \label{eq:vote_majoritaire}
 \end{equation}
 
-\noindent
-où $h_m$ est la prédiction du $m$-ième arbre et $M$ le nombre total d'arbres.
-Cette somme peut réunir 200, 500, voire 1\,000 arbres. Chaque arbre a
-\textbf{ses propres règles}, \textbf{ses propres seuils}, et certains arbres
-peuvent \emph{contredire} d'autres. La frontière de décision globale devient
-une surface ultra-complexe, non linéaire et multidimensionnelle qu'aucun
-analyste ne peut visualiser directement.
+où $\mathbf{1}[\cdot]$ est la fonction indicatrice et $\mathcal{C}$ l'ensemble des classes.
 
-\begin{attention}
-L'opacité n'est \textbf{pas} due à la complexité d'un arbre individuel, mais
-à la \textbf{dimension combinatoire} des interactions entre tous les arbres.
-Agréger 500 modèles simples produit quelque chose d'intrinsèquement complexe,
-même si chaque pièce était compréhensible séparément.
-\end{attention}
+Dans le cas continu (agrégation de probabilités), on obtient~:
 
-% ─── 5.1.3 ────────────────────────────────────────────────────────────────────
-\subsubsection{Pourquoi l'explicabilité est-elle indispensable~?}
+\begin{equation}
+  \hat{y}(\mathbf{x}) = \frac{1}{M} \sum_{m=1}^{M} h_m(\mathbf{x})
+  \label{eq:moyenne_ensemble}
+\end{equation}
 
-L'opacité des ensembles n'est pas qu'un problème académique: elle a des
-conséquences \textbf{légales}, \textbf{éthiques} et \textbf{cliniques} directes.
-
-\subsubsection*{Conséquences légales et réglementaires}
-
-Des législations comme le \textbf{RGPD} européen (articles 13, 14, 15 et 22)
-imposent aux organisations de fournir des explications claires lorsqu'une
-décision automatisée affecte un individu. En médecine, les normes de la FDA
-américaine ou les certifications CE européennes exigent la traçabilité des
-systèmes d'aide au diagnostic. Un hôpital qui déploie un modèle CKD sans
-pouvoir expliquer ses décisions s'expose à des sanctions légales sévères.
-
-\subsubsection*{Risques cliniques spécifiques}
-
-Dans notre cas fil rouge, deux phénomènes dangereux peuvent survenir en
-l'absence d'explicabilité:
-
-\begin{itemize}
-  \item \textbf{Biais d'automatisation}: le médecin fait aveuglément confiance
-  au score de 0.88 sans le remettre en question, même quand les biomarqueurs
-  affichés ne semblent pas alarmants.
-  \item \textbf{Fatigue des alarmes}: à l'inverse, le médecin ignore
-  systématiquement les alertes car il ne comprend pas leur logique, laissant
-  passer des cas urgents.
-\end{itemize}
-
-\subsubsection*{Risque de corrélations fallacieuses}
-
-Les modèles d'ensemble peuvent apprendre des \textbf{corrélations parasites}
-plutôt que des relations causales véritables. Sur le jeu de données CKD, si
-un biais de recrutement a systématiquement associé un biomarqueur démographique
-(comme l'âge ou la région) à la maladie, le modèle exploitera cette corrélation
-sans que le praticien ne puisse le détecter --- sauf s'il dispose d'un outil
-d'explicabilité.
-
-\vspace{4pt}
-
-\noindent\textbf{Le mur de l'adoption clinique.}
-Un nephrologue expérimenté refuse légitimement de modifier le traitement d'un
-patient uniquement sur la base d'une équation opaque
-$\hat{y} = \sum_{m=1}^{M} h_m(x)$.
-Il doit pouvoir vérifier que le modèle s'appuie sur des biomarqueurs
-physiologiquement pertinents (hémoglobine, créatinine, gravité spécifique)
-et non sur des artefacts du jeu de données. C'est précisément le r\^ole de
-l'XAI: déverrouiller la boîte noire pour instaurer une confiance scientifique.
-
-\vspace{8pt}
+Si l'on cherche à expliquer pourquoi $\hat{y}(\mathbf{x}_0) = 1$ pour une instance particulière
+$\mathbf{x}_0$, il faut comprendre pourquoi \textit{chacun} des $M$ classifieurs a voté dans ce sens,
+et comment leurs votes individuels ont été agrégés. Avec $M = 500$ arbres ayant chacun des
+centaines de nœuds de décision, cette tâche devient humainement impossible sans outils
+algorithmiques dédiés.
 
 % ═══════════════════════════════════════════════════════════════════════════════
 \subsection{Complexité des Ensembles de Modèles}
-\label{sec:complexite}
+% ═══════════════════════════════════════════════════════════════════════════════
 
-\noindent
-Comprendre pourquoi les ensembles sont opaques nécessite d'examiner leur
-\textbf{complexité} sous trois angles: leur structure interne, leur capacité
-à mémoriser les données, et la dynamique algorithmique qui les construit.
+\subsubsection{La dimension de Vapnik-Chervonenkis et l'explosion de la capacité}
 
-% ─── 5.2.1 ────────────────────────────────────────────────────────────────────
-\subsubsection{La dimension VC: mesurer la capacité d'un modèle}
+Pour mesurer formellement pourquoi les ensembles sont si difficiles à interpréter,
+il faut comprendre la notion de \textbf{dimension de Vapnik-Chervonenkis} (dimension VC),
+qui quantifie la richesse de l'espace des hypothèses d'un algorithme.
 
-\begin{definition}{Dimension de Vapnik-Chervonenkis (Dimension VC)}
-La \textbf{dimension VC} mesure la richesse d'un modèle: c'est le nombre maximal
-de points que le modèle peut séparer de toutes les façons possibles, quelle que
-soit leur configuration. Plus la dimension VC est grande, plus le modèle est
-flexible --- et plus il risque de mémoriser le bruit plutôt que d'apprendre
-des règles générales.
-\end{definition}
+\paragraph{Définition (Dimension de Vapnik-Chervonenkis).}
+Soit $\mathcal{H}$ un espace d'hypothèses (ensemble de fonctions de classification). La
+\textbf{dimension VC} de $\mathcal{H}$, notée $\mathrm{VC}(\mathcal{H})$, est le plus grand
+entier $d$ tel qu'il existe un ensemble de $d$ points $\{\mathbf{x}_1, \ldots, \mathbf{x}_d\} \subset \mathcal{X}$
+que $\mathcal{H}$ peut \textit{pulvériser}, c'est-à-dire réaliser toutes les $2^d$
+affectations binaires possibles sur ces points.
 
-\noindent
-\textbf{Exemple concret.} Un arbre de décision de profondeur $h$ peut capturer
-des interactions entre $h$ variables simultanément. Un arbre de profondeur~3
-peut relier: ``hémoglobine ET âge ET pression artérielle'. Quand on
-agrège $M$ tels arbres dans une Random Forest, la dimension VC de l'ensemble
-croît \textbf{exponentiellement}: l'espace des décisions possibles explose,
-et il devient impossible pour un analyste de raisonner sur toutes ces
-interactions imbriquées.
-
-\subsubsection*{Comment limiter cette explosion~?}
-
-Un hyperparamètre clé: \texttt{max\_leaf\_nodes = k}. En limitant chaque
-arbre à $k$ feuilles terminales, on plafonne les interactions capturables à
-l'ordre $k-1$. Cela a un double bénéfice:
-
-\begin{itemize}
-  \item \textbf{Réduction du surapprentissage}: le modèle n'apprend pas les
-  particularités des 400 patients du jeu CKD au lieu des règles physiologiques.
-  \item \textbf{Meilleure explicabilité}: moins d'interactions profondes signifie
-  des contributions de variables plus stables et plus facilement isolables.
-\end{itemize}
-
-% ─── 5.2.2 ────────────────────────────────────────────────────────────────────
-\subsubsection{La borne de généralisation: pourquoi la complexité nuit à l'explication}
-
-La théorie de l'apprentissage statistique nous donne une garantie mathématique
-importante: l'erreur réelle d'un modèle (sur des données qu'il n'a jamais vues)
-est bornée par son erreur d'entraînement \textbf{plus} un terme pénalisant
-sa complexité. Dit simplement:
+\textbf{Exemple concret~:} Un arbre de décision de profondeur maximale $k$ sur $p$ variables
+binaires possède une dimension VC de l'ordre de $O(k \cdot p)$. C'est une valeur finie et
+contrôlée. En revanche, une forêt aléatoire de $M$ arbres de profondeur $k$ génère une
+frontière de décision dont la complexité combinatoire est de l'ordre de~:
 
 \begin{equation}
-  \text{Erreur réelle} \;\leq\; \text{Erreur d'entraînement}
-  \;+\; \underbrace{2 \times \text{Complexité du modèle}}_{\text{pénalité}}
-  \;+\; \text{terme statistique}
-  \label{eq:generalisation}
+  \mathrm{VC}(\mathcal{H}_{\text{forêt}}) = O\!\left(M \cdot k \cdot p \cdot \log(M)\right)
+  \label{eq:vc_foret}
 \end{equation}
 
-\noindent
-\textbf{Implication pratique.} Si l'on ajoute aveuglément des arbres très
-profonds dans un ensemble XGBoost entraîné sur 400 patients, la pénalité de
-complexité augmente: le modèle surapprentit les données d'entraînement et
-ses performances réelles se dégradent. De plus, un modèle qui surapprentit
-interprète le \emph{bruit} des données comme un signal réel: ses explications
-deviennent non seulement inexactes, mais \textbf{physiologiquement absurdes}.
+Cette explosion de la dimension VC a deux conséquences directes sur l'interprétabilité~:
 
-\begin{pointcle}
-La complexité est l'ennemi à la fois de la \textbf{généralisation} et de
-l'\textbf{explicabilité}. Maîtriser la complexité d'un ensemble, c'est
-simultanément améliorer ses prédictions sur de nouveaux patients \emph{et}
-rendre ses décisions plus compréhensibles.
-\end{pointcle}
-
-% ─── 5.2.3 ────────────────────────────────────────────────────────────────────
-\subsubsection{Bagging et Boosting: deux architectures, deux types de complexité}
-
-Les deux grandes familles d'ensembles abordent la complexité de manières
-fondamentalement différentes. Le tableau~\ref{tab:bagging_boosting} synthétise
-leurs différences.
-
-\begin{table}[h]
-\centering
-\caption{Comparaison algorithmique: Bagging vs Boosting}
-\label{tab:bagging_boosting}
-\renewcommand{\arraystretch}{1.45}
-\begin{tabularx}{\textwidth}{>{\bfseries}lXX}
-\toprule
-Caractéristique & \textbf{Bagging} (ex.: Random Forest) & \textbf{Boosting} (ex.: XGBoost) \\
-\midrule
-Construction     & Parallèle et indépendante & Séquentielle et dépendante \\
-Objectif         & Réduire la \textbf{variance} & Réduire le \textbf{biais} \\
-Surapprentissage & Stable, moins sensible & Sensible, nécessite une régularisation stricte \\
-Coût de calcul   & Linéaire, parallélisable & Séquentiel ($\approx$14$\times$ plus lent) \\
-Diversité        & Par tirage aléatoire (bootstrap) & Par correction ciblée des erreurs \\
-Risque d'opacité & Modéré (votes indépendants) & Élevé (corrections cumulées et dépendantes) \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsubsection*{Le Bagging en détail}
-
-Le Bagging (Bootstrap Aggregating) construit chaque arbre sur un \textbf{sous-échantillon
-aléatoire} des données d'entraînement. Pour la Random Forest, une double
-stochasticité est introduite: tirage aléatoire des patients \emph{et} sélection
-aléatoire des variables à chaque n\oe ud. L'agrégation finale se fait par
-\textbf{vote majoritaire} (classification) ou \textbf{moyenne} (régression).
-
-\begin{exemple}{Bagging sur le jeu CKD}
-Imaginez 3 médecins (les 3 arbres) qui examinent chacun un sous-ensemble
-différent des 400 dossiers patients:
-\begin{itemize}
-  \item Médecin 1: basé sur l'hémoglobine et la pression artérielle $\rightarrow$ \textbf{CKD}
-  \item Médecin 2: basé sur la créatinine et l'albumine $\rightarrow$ \textbf{CKD}
-  \item Médecin 3: basé sur l'âge et le glucose $\rightarrow$ \textbf{sain}
-\end{itemize}
-Vote final (2 contre 1): \textbf{CKD}. La prédiction est stable, mais il est
-difficile de savoir quel médecin a eu le plus d'influence.
-\end{exemple}
-
-\subsubsection*{Le Boosting en détail}
-
-Le Boosting construit les arbres \textbf{séquentiellement}: chaque nouvel arbre
-se concentre sur les cas que les arbres précédents ont mal classés. Pour le
-Gradient Boosting (GBRT), cela revient à ce que chaque arbre $h_m$ approxime
-le \textbf{gradient de l'erreur} du modèle précédent. Le modèle final est:
-
-\begin{equation}
-  F_M(x) \;=\; F_{M-1}(x) \;+\; h_M(x)
-\end{equation}
-
-\noindent
-Le Boosting réduit fortement le biais (il détecte des signaux subtils que le
-Bagging rate), mais requiert un contrôle minutieux via des hyperparamètres
-comme le taux d'apprentissage (\texttt{learning\_rate}) et les pénalités $L_1/L_2$
-pour éviter l'explosion de la variance.
-
-\vspace{4pt}
-
-\noindent\textbf{Gestion de la complexité sur les données CKD.}
-Avec seulement 400 patients et 24 variables, le risque de surapprentissage
-est élevé. Un XGBoost mal configuré mémoriserait les particularités des
-400 cas plutôt que les règles physiologiques de la CKD. La stratégie recommandée:
 \begin{enumerate}
-  \item Limiter \texttt{max\_depth} à 3 ou 4 (interactions d'ordre faible).
-  \item Fixer \texttt{max\_leaf\_nodes} pour brider l'expressivité de chaque arbre.
-  \item Utiliser un \texttt{learning\_rate} faible (0.05--0.1) pour forcer
-  une correction progressive.
-\end{enumerate}
-Ces contraintes ont un double effet positif: elles préviennent le surapprentissage
-\emph{et} rendent les contributions des biomarqueurs clés (hémoglobine, gravité
-spécifique) plus stables et plus isolables par les méthodes XAI.
+  \item \textbf{Perte de simulabilité~:} Un humain ne peut plus simuler mentalement
+        le processus décisionnel. Il faut au minimum $O(\mathrm{VC}(\mathcal{H}))$ exemples pour
+        comprendre le comportement du modèle.
 
-\vspace{8pt}
+  \item \textbf{Perte de décomposabilité~:} Il devient impossible d'attribuer
+        un coefficient fixe et indépendant à chaque variable d'entrée. La contribution
+        d'une variable $x_j$ dépend des valeurs de toutes les autres variables, de façon
+        non linéaire et locale.
+\end{enumerate}
+
+\subsubsection{La décomposition biais-variance et le compromis d'opacité}
+
+La théorie statistique de l'apprentissage décompose l'erreur attendue d'un modèle $h$ en
+trois termes~:
+
+\begin{equation}
+  \mathbb{E}\!\left[(y - h(\mathbf{x}))^2\right]
+  = \underbrace{\mathrm{Biais}^2[h(\mathbf{x})]}_{\text{erreur systématique}}
+  + \underbrace{\mathrm{Variance}[h(\mathbf{x})]}_{\text{instabilité}}
+  + \underbrace{\sigma^2_\epsilon}_{\text{bruit irréductible}}
+  \label{eq:biais_variance}
+\end{equation}
+
+Les méthodes d'ensemble exploitent cette décomposition de manière différente selon
+leur type~:
+
+\begin{itemize}
+  \item Le \textbf{Bagging} réduit principalement la \textit{variance}~: plusieurs modèles
+        entraînés sur des sous-échantillons différents produisent des erreurs décorrélées,
+        dont la moyenne est plus stable.
+
+  \item Le \textbf{Boosting} réduit principalement le \textit{biais}~: les modèles successifs
+        corrigent les erreurs résiduelles accumulées.
+\end{itemize}
+
+\textbf{Démonstration de la réduction de variance par le Bagging~:}
+
+Soit $M$ classifieurs de base $h_1, \ldots, h_M$, entraînés sur des sous-ensembles
+bootstrap indépendants, chacun ayant une variance $\sigma^2$ et une covariance pairwise
+$\rho \sigma^2$ (avec $\rho$ le coefficient de corrélation entre deux prédicteurs).
+La variance de leur moyenne est~:
+
+\begin{equation}
+  \mathrm{Var}\!\left(\frac{1}{M}\sum_{m=1}^{M} h_m(\mathbf{x})\right)
+  = \rho \sigma^2 + \frac{1-\rho}{M}\,\sigma^2
+  \label{eq:variance_bagging}
+\end{equation}
+
+Lorsque $M \to \infty$, le second terme tend vers zéro et la variance résiduelle
+est $\rho \sigma^2$~: elle est entièrement déterminée par la \textbf{corrélation entre les
+classifieurs}. C'est pourquoi les Random Forests introduisent la sélection aléatoire
+de variables~: pour maximiser la diversité (réduire $\rho$).
+
+\paragraph{Remarque (Paradoxe de l'opacité).}
+La diversité entre classifieurs est \textit{à la fois} la cause de la performance supérieure
+\textit{et} la cause principale de l'opacité. En forçant les modèles à raisonner sur des
+sous-espaces de variables différents, on rend impossible toute explication unifiée et
+cohérente de la décision finale.
+
+\subsubsection{Le théorème de Condorcet et ses implications pour l'explicabilité}
+
+Le \textbf{théorème du jury de Condorcet} (1785) fournit la justification théorique
+de l'agrégation par vote majoritaire~:
+
+\paragraph{Théorème (Jury de Condorcet).}
+Supposons $M$ votants indépendants, chacun prenant la bonne décision avec probabilité
+$p > 0.5$. La probabilité que la majorité prenne la bonne décision est~:
+\begin{equation}
+  P_M = \sum_{k=\lceil M/2 \rceil}^{M} \binom{M}{k} p^k (1-p)^{M-k}
+\end{equation}
+et $P_M \to 1$ lorsque $M \to \infty$.
+
+\textbf{Ce que cela implique pour l'explicabilité~:} La force de l'ensemble réside
+précisément dans la \textit{faiblesse et la spécialisation locale} de chaque apprenant
+de base. Un apprenant performant sur une sous-région de l'espace n'a pas besoin d'être
+correct ailleurs~: les autres compensent. Cela signifie qu'il est vain de chercher
+à expliquer la décision finale par un raisonnement global cohérent~: la décision émerge
+de la \textit{combinaison de raisonnements locaux et partiellement contradictoires}.
+
+\subsubsection{L'identité de Krogh-Vedelsby~: diversité et erreur d'ensemble}
+
+L'identité de Krogh et Vedelsby (1995) formalise mathématiquement le rôle de la diversité
+dans la qualité d'un ensemble. Soit $\bar{h}(\mathbf{x}) = \frac{1}{M}\sum_{m=1}^M h_m(\mathbf{x})$
+l'agrégat des prédictions, l'erreur quadratique moyenne de l'ensemble vérifie~:
+
+\begin{equation}
+  \mathbb{E}_{\mathbf{x}}\!\left[(y - \bar{h}(\mathbf{x}))^2\right]
+  = \underbrace{\frac{1}{M}\sum_{m=1}^{M} \mathbb{E}\!\left[(y - h_m(\mathbf{x}))^2\right]}_{\text{erreur moyenne des classifieurs}}
+  - \underbrace{\frac{1}{M}\sum_{m=1}^{M} \mathbb{E}\!\left[(\bar{h}(\mathbf{x}) - h_m(\mathbf{x}))^2\right]}_{\text{ambiguïté (diversité)}}
+  \label{eq:krogh_vedelsby}
+\end{equation}
+
+\textbf{Interprétation~:} L'erreur de l'ensemble est \textit{toujours strictement inférieure}
+à la moyenne des erreurs individuelles, l'écart étant exactement la diversité des
+prédictions. Plus les classifieurs désaccordent sur leurs prédictions (grande diversité),
+plus l'ensemble gagne en précision. Mais ce désaccord est précisément ce qui rend impossible
+toute explication unifiée~: des classifieurs qui s'accordent sont interprétables~;
+des classifieurs qui se contredisent délibérément ne le sont pas.
+
+\subsubsection{L'accumulation des résidus dans le Boosting}
+
+Le Gradient Boosting construit son modèle de façon additive et séquentielle~:
+
+\begin{equation}
+  F_T(\mathbf{x}) = \sum_{t=1}^{T} \eta \cdot h_t(\mathbf{x})
+  \label{eq:gradient_boosting}
+\end{equation}
+
+où $\eta$ est le taux d'apprentissage et $h_t$ est le $t$-ième arbre entraîné sur le
+gradient de la perte à l'itération $t$~:
+
+\begin{equation}
+  h_t = \underset{h \in \mathcal{H}}{\arg\min}
+  \sum_{i=1}^{n} \left[-g_i^{(t)}\right] \cdot h(\mathbf{x}_i),
+  \quad g_i^{(t)} = \frac{\partial \ell(y_i, F_{t-1}(\mathbf{x}_i))}{\partial F_{t-1}(\mathbf{x}_i)}
+  \label{eq:gradient_residuel}
+\end{equation}
+
+\textbf{Conséquence pour l'explicabilité~:} Chaque arbre $h_t$ ne modélise pas la cible
+$y$, mais le \textit{gradient résiduel}, c'est-à-dire la direction dans laquelle le modèle
+précédent s'est trompé. Expliquer pourquoi $F_T(\mathbf{x}_0) = 0.87$ implique de justifier
+non seulement le signal principal capturé par $h_1$, mais également l'ensemble
+des micro-corrections $h_2, h_3, \ldots, h_T$, dont certaines compensent des erreurs
+sur des régions très locales du jeu de données. Sans régularisation stricte, le modèle
+mémorise du bruit~: toute explication extraite refléterait alors des \textit{artefacts
+statistiques locaux} plutôt que des relations causales généralisables.
 
 % ═══════════════════════════════════════════════════════════════════════════════
-\subsection{Stratégies d'Explicabilité des Ensembles (XAI)}
-\label{sec:xai}
+\subsection{Stratégies d'Explicabilité des Ensembles}
+% ═══════════════════════════════════════════════════════════════════════════════
 
-\noindent
-Puisque la nature agrégée des ensembles génère une opacité inévitable, la
-communauté scientifique a développé trois grandes familles de stratégies pour
-en extraire du sens. Nous les présentons ici avec leurs fondements, leurs forces
-et leurs limites, illustrées sur le cas CKD.
+On distingue deux grandes catégories de stratégies~: les méthodes \textbf{post-hoc},
+appliquées après l'entraînement d'un modèle opaque, et les architectures
+\textbf{intrinsèquement interprétables} (\textit{glass-box}), conçues dès le départ pour
+être transparentes. Nous verrons également les approches hybrides issues du méta-apprentissage.
 
-% ─── 5.3.1 ────────────────────────────────────────────────────────────────────
-\subsubsection{Les valeurs SHAP: une explication fondée sur la théorie des jeux}
+\subsubsection{Méthodes post-hoc : limites de LIME sur les ensembles arborescents}
 
-\begin{definition}{SHAP --- SHapley Additive exPlanations}
-\textbf{SHAP} est une méthode qui attribue à chaque variable d'entrée une
-\textbf{valeur d'importance} ($\phi_i$) pour une prédiction donnée. Cette valeur
-représente la contribution marginale de la variable, en moyenne sur toutes
-les combinaisons possibles de variables. Le fondement est la
-\textbf{théorie des jeux coopératifs} de Lloyd Shapley: les variables sont les
-``joueurs' d'une coalition cherchant à ``gagner' (expliquer la prédiction).
-\end{definition}
-
-\subsubsection*{L'idée intuitive: le jeu de coalition}
-
-Voici l'intuition derrière SHAP avec un exemple du jeu CKD. Imaginons que le
-modèle XGBoost prédit \textbf{88\,\% de risque CKD} pour un patient donné.
-On cherche à répondre: ``Quelle variable a le plus contribué à ce score~?'
-
-La valeur SHAP d'une variable $i$ s'obtient en posant la question:
-``En moyenne, quelle est la \textbf{différence de prédiction} quand on ajoute
-la variable $i$ à une coalition de variables, par rapport à la coalition sans $i$~?'
-
-Formellement:
+\paragraph{Principe de LIME.}
+\textbf{LIME} (Local Interpretable Model-Agnostic Explanations) tente d'expliquer la
+prédiction d'un modèle complexe $f$ en ajustant localement un modèle simple $g$
+(régression Ridge ou Lasso) sur des instances perturbées autour de l'instance cible $\mathbf{x}_0$~:
 
 \begin{equation}
-  \phi_i \;=\;
-  \sum_{S \subseteq \text{toutes variables} \setminus \{i\}}
-  \frac{|S|!\;(|M| - |S| - 1)!}{|M|!}
-  \;\bigl[f(S \cup \{i\}) - f(S)\bigr]
+  g^* = \underset{g \in \mathcal{G}}{\arg\min}
+  \sum_{\mathbf{x}' \in Z} \pi_{\mathbf{x}_0}(\mathbf{x}') \cdot \ell\bigl(f(\mathbf{x}'), g(\mathbf{x}')\bigr)
+  + \Omega(g)
+  \label{eq:lime}
+\end{equation}
+
+où $Z$ est l'ensemble des échantillons perturbés, $\pi_{\mathbf{x}_0}(\mathbf{x}')$ est un noyau
+de pondération gaussien qui donne plus de poids aux points proches de $\mathbf{x}_0$,
+et $\Omega(g)$ est une pénalité de complexité.
+
+\begin{algorithm}[H]
+\caption{LIME appliqué à un classifieur d'ensemble $f$}
+\begin{algorithmic}[1]
+\Require Instance cible $\mathbf{x}_0$, modèle $f$, taille d'échantillon $N$, noyau $\pi$
+\Ensure Explication locale $g^*$ (régression Ridge)
+\State Initialiser $Z \leftarrow \emptyset$
+\For{$i = 1$ \textbf{à} $N$}
+    \State Générer $\mathbf{x}'_i$ par perturbation gaussienne de $\mathbf{x}_0$
+    \State Calculer $\hat{y}_i = f(\mathbf{x}'_i)$ \Comment{Appel au modèle boîte noire}
+    \State Calculer $w_i = \pi_{\mathbf{x}_0}(\mathbf{x}'_i) = \exp\!\left(-\frac{\|\mathbf{x}_0 - \mathbf{x}'_i\|^2}{\sigma^2}\right)$
+    \State $Z \leftarrow Z \cup \{(\mathbf{x}'_i, \hat{y}_i, w_i)\}$
+\EndFor
+\State Résoudre : $g^* \leftarrow \arg\min_{g} \sum_{i} w_i \cdot (f(\mathbf{x}'_i) - g(\mathbf{x}'_i))^2 + \lambda\|g\|_1$
+\State \Return $g^*$ (coefficients = importances des variables)
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Pourquoi LIME échoue sur les ensembles arborescents.}
+
+Les ensembles arborescents partitionnent l'espace des caractéristiques en
+\textit{hyper-rectangles orthogonaux}, créant une fonction de décision en escalier avec de
+nombreuses discontinuités abruptes. Lorsque LIME génère des perturbations gaussiennes
+autour de $\mathbf{x}_0$, certains points perturbés tombent dans le même hyper-rectangle que
+$\mathbf{x}_0$ (même prédiction), d'autres traversent une frontière et obtiennent une prédiction
+radicalement différente.
+
+\textbf{Conséquence~:} l'ajustement linéaire devient extrêmement instable. Deux
+exécutions successives de LIME sur la même instance peuvent produire des importances
+de variables totalement différentes. Cette \textbf{instabilité est rédhibitoire} dans les
+contextes réglementaires où la reproductibilité de l'explication est une exigence légale
+(diagnostic clinique, octroi de crédit).
+
+\paragraph{Exemple (Instabilité de LIME sur une forêt aléatoire).}
+Supposons une forêt qui classifie les demandes de crédit. Pour le client A, une première
+exécution de LIME indique que le \textit{revenu mensuel} est la variable la plus importante~;
+une seconde exécution (avec un autre tirage aléatoire) indique que c'est \textit{l'historique
+de remboursement}. Aucune des deux n'est fiable~: la banque ne peut pas s'appuyer sur
+ces résultats pour justifier un refus de crédit devant un régulateur.
+
+\subsubsection{TreeSHAP : la solution exacte fondée sur la théorie des jeux}
+
+\paragraph{Valeurs de Shapley et garanties d'équité.}
+
+Les \textbf{valeurs de Shapley} (SHAP), issues de la théorie des jeux coopératifs, définissent
+la contribution équitable de chaque variable $j$ à la prédiction $f(\mathbf{x}_0)$~:
+
+\begin{equation}
+  \phi_j(f, \mathbf{x}) = \sum_{S \subseteq \mathcal{F} \setminus \{j\}}
+  \frac{|S|!\,(|\mathcal{F}| - |S| - 1)!}{|\mathcal{F}|!}
+  \left[f_{S \cup \{j\}}(\mathbf{x}_{S \cup \{j\}}) - f_S(\mathbf{x}_S)\right]
   \label{eq:shapley}
 \end{equation}
 
-\noindent
-Pas de panique avec cette formule: il faut retenir que le terme factoriel
-est un \textbf{poids combinatoire} qui garantit l'équité de la répartition,
-et que $f(S \cup \{i\}) - f(S)$ mesure l'apport marginal de la variable $i$.
+où $\mathcal{F}$ est l'ensemble de toutes les variables, et $f_S$ est le modèle restreint
+aux variables de l'ensemble $S$ (les variables absentes étant marginalisées).
 
-\subsubsection*{Les trois propriétés garanties par SHAP}
-
-SHAP est la \textbf{seule} méthode d'attribution qui garantit simultanément:
-
+Ces valeurs satisfont quatre axiomes fondamentaux~:
 \begin{enumerate}
-  \item \textbf{Précision locale}: la somme de toutes les valeurs SHAP est
-  exactement égale à l'écart entre la prédiction du patient et la prédiction
-  moyenne du modèle:
-  \begin{equation}
-    \hat{f}(x) \;=\; \mathbb{E}[\hat{f}] \;+\; \sum_{j=1}^{M} \phi_j
-    \label{eq:shap_decomp}
-  \end{equation}
-
-  \item \textbf{Missingness}: si une variable n'a aucun impact sur la prédiction,
-  sa valeur SHAP est strictement zéro.
-
-  \item \textbf{Cohérence}: si une variable devient plus influente dans un modèle
-  modifié, sa valeur SHAP ne peut pas diminuer.
+  \item \textbf{Efficacité~:} $\sum_{j=1}^{p} \phi_j = f(\mathbf{x}) - \mathbb{E}[f(\mathbf{x})]$ (les contributions somment à la déviation par rapport à la moyenne).
+  \item \textbf{Symétrie~:} si deux variables $i$ et $j$ contribuent identiquement dans toutes les coalitions, $\phi_i = \phi_j$.
+  \item \textbf{Nullité~:} si une variable n'affecte jamais la prédiction, $\phi_j = 0$.
+  \item \textbf{Additivité~:} pour un modèle additif $f = f_1 + f_2$, $\phi_j(f) = \phi_j(f_1) + \phi_j(f_2)$.
 \end{enumerate}
 
-\subsubsection*{TreeSHAP: rendre SHAP rapide pour les ensembles d'arbres}
+\textbf{Problème calculatoire~:} L'équation \eqref{eq:shapley} somme sur $2^{|\mathcal{F}|}$
+sous-ensembles. Avec $p = 30$ variables, cela représente plus d'un milliard de calculs.
+L'approche agnostique \textbf{KernelSHAP} approxime ce calcul par échantillonnage, avec
+une complexité en $O(2^M)$, ce qui est rédhibitoire pour des ensembles massifs.
 
-Le calcul exact des valeurs SHAP nécessite d'évaluer le modèle pour toutes les
-combinaisons possibles de variables: une complexité $\mathcal{O}(2^M)$, soit
-$2^{24} \approx 16\,\text{millions}$ d'évaluations pour nos 24 variables CKD.
-C'est impossible en temps réel.
+\paragraph{L'algorithme TreeSHAP : complexité polynomiale exacte.}
 
-\textbf{TreeSHAP} résout ce problème en exploitant la structure interne des
-arbres de décision. Il parcourt les chemins de l'arbre une seule fois et
-calcule les valeurs SHAP exactes en temps \textbf{polynomial}:
+\textbf{TreeSHAP} exploite la structure arborescente pour calculer les valeurs de Shapley
+\textit{exactes} avec une complexité réduite à~:
 
 \begin{equation}
-  \mathcal{O}(2^M) \;\longrightarrow\; \mathcal{O}(T \cdot L \cdot D^2)
+  O(T \cdot L \cdot D^2)
+  \label{eq:complexite_treeshap}
 \end{equation}
 
-\noindent
-où $T$ = nombre d'arbres, $L$ = feuilles par arbre, $D$ = profondeur maximale.
-Sur un XGBoost entraîné pour la CKD, cela réduit le temps de calcul de
-\emph{plusieurs heures} à \emph{quelques millisecondes}.
+où $T$ est le nombre d'arbres, $L$ le nombre maximal de feuilles par arbre, et $D$
+la profondeur maximale.
 
-\noindent\textbf{TreeSHAP appliqué au diagnostic CKD.}
-Un nouveau patient est admis avec un score de risque de 88\,\%. Le médecin
-lance le module TreeSHAP, qui retourne en quelques millisecondes:
+\textbf{Idée clé~:} Plutôt que de traiter le modèle comme une boîte noire et d'appeler
+$f(\cdot)$ pour chaque coalition, TreeSHAP navigue dans la structure des nœuds de chaque
+arbre et maintient, via de la \textit{programmation dynamique}, le compte du poids de
+chaque feuille pour chaque coalition possible.
 
-\vspace{4pt}
-\begin{center}
-\begin{tabular}{lrl}
+\begin{algorithm}[H]
+\caption{TreeSHAP — calcul exact pour un arbre unique $t$}
+\begin{algorithmic}[1]
+\Require Arbre $t$, instance $\mathbf{x}_0$
+\Ensure Valeurs de Shapley $\phi_j$ pour chaque variable $j$
+\State Initialiser $\phi_j \leftarrow 0$ pour tout $j$
+\State $\textsc{PathExplainer}(\text{nœud racine}, \mathbf{x}_0, \text{fraction}=1, \text{zero\_fraction}=1, \text{one\_fraction}=1)$
+\Procedure{PathExplainer}{nœud $v$, $\mathbf{x}_0$, $\text{pf}$, $\text{zf}$, $\text{of}$}
+  \If{$v$ est une feuille}
+      \State Mettre à jour $\phi_j$ via les poids accumulés le long du chemin
+  \Else
+      \State Soit $j$ la variable de division en $v$ et $s$ le seuil
+      \State $h \leftarrow$ fraction des données passant à gauche sous $v$
+      \State Appel récursif pour le sous-arbre gauche avec fractions mises à jour
+      \State Appel récursif pour le sous-arbre droit avec fractions mises à jour
+  \EndIf
+\EndProcedure
+\State \Return $\phi = (\phi_1, \ldots, \phi_p)$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{table}[H]
+\centering
+\caption{Comparaison des méthodes SHAP pour les ensembles arborescents}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{>{\bfseries}p{3.8cm} p{3cm} p{3cm} p{3.8cm}}
 \toprule
-Variable & $\phi_i$ (valeur SHAP) & Interprétation \\
+Critère & KernelSHAP & TreeSHAP & Fast TreeSHAP v2 \\
 \midrule
-Taux d'hémoglobine (faible) & $+0.42$ & Pousse fortement vers CKD \\
-Gravité spécifique urine (basse) & $+0.31$ & Pousse fortement vers CKD \\
-Présence de diabète mellitus & $+0.15$ & Pousse vers CKD \\
-Pression artérielle (normale) & $-0.08$ & Réduit légèrement le risque \\
-Âge du patient (50 ans) & $+0.03$ & Impact marginal \\
-\midrule
-\textbf{Score moyen du modèle} & $+0.05$ & Valeur de référence \\
+Agnosticisme & Total (boîte noire) & Spécifique (arbres) & Spécifique (arbres) \\
+Complexité & $O(2^M)$ approx. & $O(T \cdot L \cdot D^2)$ exact & Pré-calcul optimisé \\
+Colinéarité & Restreinte & Paramétrable & Paramétrable \\
+Vitesse & Très lente & Rapide & Très rapide \\
+Usage temps réel & Non & Oui & Oui \\
 \bottomrule
-\multicolumn{3}{r}{\small Somme des $\phi_i$ + score moyen = 0.88 (88\,\%)} \\
 \end{tabular}
-\end{center}
-
-\vspace{4pt}
-\noindent
-Le médecin voit immédiatement que c'est principalement le \textbf{faible taux
-d'hémoglobine} couplé à une \textbf{gravité spécifique anormale} qui drive la
-prédiction --- des marqueurs physiologiquement cohérents avec la CKD. La boîte
-noire est déverrouillée.
-
-% ─── 5.3.2 ────────────────────────────────────────────────────────────────────
-\subsubsection{LIME: une explication locale par approximation linéaire}
-
-\begin{definition}{LIME --- Local Interpretable Model-agnostic Explanations}
-\textbf{LIME} explique une prédiction individuelle en construisant un
-\textbf{modèle simple} (souvent une régression linéaire) qui imite localement
-le comportement de la boîte noire au voisinage du point à expliquer.
-L'idée géométrique: même si la frontière de décision globale est complexe,
-elle est \textbf{localement linéaire} quand on zoome suffisamment.
-\end{definition}
-
-\subsubsection*{Fonctionnement en 4 étapes}
-
-\begin{enumerate}
-  \item \textbf{Perturbation}: on génère des copies artificielles du patient
-  en modifiant légèrement ses variables (bruit gaussien, masquage de valeurs).
-
-  \item \textbf{Interrogation}: on soumet ces copies à la boîte noire XGBoost
-  pour obtenir leurs prédictions.
-
-  \item \textbf{Pondération}: les copies les plus proches du patient original
-  reçoivent un poids plus élevé. Le noyau de pondération est exponentiel:
-  \begin{equation}
-    \pi_x(z) = \exp\!\left(-\frac{D(x, z)^2}{\sigma^2}\right)
-  \end{equation}
-  où $D(x,z)$ est la distance entre la copie $z$ et le patient original $x$.
-
-  \item \textbf{Ajustement}: on entraîne une régression linéaire sur ces
-  copies pondérées. Les coefficients de cette régression deviennent les
-  ``explications' du modèle pour ce patient.
-\end{enumerate}
-
-\subsubsection*{Forces et limites de LIME}
-
-\begin{table}[h]
-\centering
-\caption{Forces et limites de LIME pour les ensembles}
-\label{tab:lime}
-\renewcommand{\arraystretch}{1.4}
-\begin{tabularx}{\textwidth}{XX}
-\toprule
-\textbf{Forces} & \textbf{Limites} \\
-\midrule
-Rapide à calculer & Instable: deux exécutions sur le même patient peuvent donner des résultats différents \\
-Agnostique: fonctionne avec n'importe quel modèle & La taille du voisinage ($\sigma$) est un choix arbitraire \\
-Facile à comprendre visuellement & Échoue sur des frontières très non linéaires \\
-& Pas de garantie mathématique d'équité \\
-\bottomrule
-\end{tabularx}
+\label{tab:comparaison_shap}
 \end{table}
 
-\begin{attention}
-Dans un contexte médical, l'\textbf{instabilité de LIME} est un problème critique.
-Si deux applications successives du même modèle sur le même patient donnent des
-importances de variables contradictoires, le médecin ne peut pas faire confiance
-à l'explication. C'est pourquoi SHAP (et en particulier TreeSHAP) est préféré
-dans les contextes à hauts enjeux.
-\end{attention}
+\subsubsection{SIRUS : extraction de règles stables depuis les forêts aléatoires}
 
-% ─── 5.3.3 ────────────────────────────────────────────────────────────────────
-\subsubsection{Extraction de règles globales: de la forêt aux règles médicales (SIRUS)}
+\paragraph{Le problème de l'instabilité des règles classiques.}
 
-TreeSHAP et LIME fournissent des explications \textbf{locales} (par patient).
-Mais comment obtenir une vue \textbf{globale} du comportement d'un ensemble~?
-L'idée est de distiller la forêt en un petit ensemble de \textbf{règles simples}.
+Une approche intuitive pour expliquer une forêt aléatoire consiste à en extraire des
+règles logiques de la forme $\text{SI } (x_1 > 3.5) \text{ ET } (x_2 \leq 0.8) \text{ ALORS } y = 1$.
+Cependant, les extracteurs de règles traditionnels souffrent d'une \textbf{instabilité
+pathologique}~: un léger changement dans le jeu d'entraînement (un sous-échantillonnage
+bootstrap différent) modifie la racine des arbres, déclenchant une cascade de règles
+entièrement différentes.
 
-\begin{definition}{Règle de décision}
-Une règle de décision est une condition logique de la forme:\\
-\centerline{``\textbf{SI} [condition(s)] \textbf{ALORS} [prédiction]''}\\
-Les règles sont compréhensibles par tout professionnel sans formation en ML.
-\end{definition}
+\textbf{SIRUS} (Stable and Interpretable RUle Set) a été spécifiquement conçu pour
+garantir la \textit{stabilité mathématique} des règles extraites d'une Random Forest.
 
-\noindent
-L'algorithme \textbf{SIRUS} (\emph{Stable and Interpretable RUle Set}) aborde
-ce problème en:
+\paragraph{Architecture de SIRUS en quatre phases.}
 
-\begin{enumerate}
-  \item Extrayant toutes les règles latentes des arbres de la Random Forest.
-  \item Filtrant les règles instables (celles qui disparaissent si l'on modifie
-  légèrement les données d'entraînement).
-  \item Ne conservant qu'un petit nombre de règles stables, maximisant leur
-  stabilité via un indice de Dice-Sørensen.
-\end{enumerate}
+\begin{algorithm}[H]
+\caption{Algorithme SIRUS}
+\begin{algorithmic}[1]
+\Require Forêt $\mathcal{F}$ (10\,000+ arbres, profondeur max 2), seuil $p_0$, quantiles $q$
+\Ensure Ensemble de règles $\mathcal{R}^*$ stable et interprétable
 
-\noindent\textbf{SIRUS appliqué au diagnostic CKD.}
-L'hôpital souhaite un \textbf{protocole de tri rapide} aux urgences, sans
-serveur de calcul. L'algorithme SIRUS extrait 4 règles cliniques fondamentales
-de la Random Forest entraînée sur les 400 dossiers CKD:
+\State \textbf{Phase 1 — Discrétisation~:}
+\ForEach{variable continue $x_j$}
+    \State Calculer les $q$ quantiles empiriques $\{c_{j,1}, \ldots, c_{j,q}\}$
+    \State Remplacer $x_j$ par sa version discrétisée $\tilde{x}_j \in \{1, \ldots, q\}$
+\EndFor
+\Comment{Vocabulaire de coupures partagé entre tous les arbres}
 
-\vspace{6pt}
-\begin{enumerate}
-  \item \textbf{SI} hémoglobine $< 12.0$\,g/dL \textbf{ET} gravité spécifique $< 1.015$
-        $\Rightarrow$ \textbf{Probabilité CKD élevée}
-  \item \textbf{SI} créatinine sérique $> 1.2$\,mg/dL \textbf{ET} albumine anormale
-        $\Rightarrow$ \textbf{Probabilité CKD élevée}
-  \item \textbf{SI} hémoglobine $\geq 12.0$\,g/dL \textbf{ET} pression normale
-        $\Rightarrow$ \textbf{Probabilité CKD faible}
-  \item \textbf{SINON}
-        $\Rightarrow$ \textbf{Examen complémentaire requis}
-\end{enumerate}
+\State \textbf{Phase 2 — Extraction des chemins~:}
+\ForEach{arbre $t_k \in \mathcal{F}$}
+    \ForEach{chemin racine-feuille $\pi$ dans $t_k$}
+        \State Extraire la règle propositionnelle $r_\pi$ associée à $\pi$
+        \State Ajouter $r_\pi$ au pool $\mathcal{R}$
+    \EndFor
+\EndFor
 
-\vspace{4pt}
-\noindent
-Ces 4 règles, dérivées mathématiquement de millions de n\oe uds de la forêt,
-sont mémorisables et intégrables dans un manuel médical. Elles ne couvrent pas
-tous les cas (d'où la règle~4), mais capturent les situations les plus fréquentes
-avec une précision validée.
+\State \textbf{Phase 3 — Filtrage par fréquence~:}
+\ForEach{règle $r \in \mathcal{R}$}
+    \State $\hat{p}(r) \leftarrow$ fréquence d'apparition de $r$ dans $\mathcal{F}$
+    \If{$\hat{p}(r) \geq p_0$}
+        \State Conserver $r$ dans $\mathcal{R}_{\text{freq}}$
+    \EndIf
+\EndFor
 
-% ─── 5.3.4 ────────────────────────────────────────────────────────────────────
-\subsubsection{Distillation de connaissances: enseigner la transparence}
+\State \textbf{Phase 4 — Élagage et pondération~:}
+\State Supprimer les règles redondantes (combinaisons linéaires de règles plus courtes)
+\State Ajuster les poids finaux par régression Ridge~: $\mathbf{w}^* = \arg\min_{\mathbf{w}} \|\mathbf{y} - R\mathbf{w}\|^2 + \lambda\|\mathbf{w}\|^2$
+\State $\mathcal{R}^* \leftarrow$ liste finale de $\sim$10 règles pondérées
 
-\begin{definition}{Distillation de connaissances (\emph{Knowledge Distillation})}
-La \textbf{distillation} consiste à entraîner un modèle simple et interprétable
-(``l'élève') à imiter les prédictions d'un ensemble complexe
-(``le professeur'). L'élève n'apprend pas les étiquettes binaires brutes
-(0 ou 1), mais les \textbf{probabilités continues} émises par le professeur
-(par exemple, 0.73 plutôt que ``CKD'). Ces probabilités portent plus
-d'information: elles reflètent l'incertitude du modèle.
-\end{definition}
+\State \Return $\mathcal{R}^*$
+\end{algorithmic}
+\end{algorithm}
 
-\subsubsection*{Pourquoi les probabilités molles (\emph{soft labels}) sont-elles précieuses~?}
+\paragraph{Garantie de stabilité via l'indice de Dice-Sørensen.}
 
-Quand l'ensemble XGBoost prédit 0.73 de probabilité CKD (plutôt que
-bêtement ``1'), il communique implicitement: ``Ce cas ressemble
-à 73\,\% aux profils CKD que j'ai vus, mais il y a 27\,\% de chance que
-je me trompe.' Ces nuances probabilistes --- appelées \textbf{connaissances
-sombres} (\emph{dark knowledge}) --- contiennent des informations sur les
-frontières de décision et les cas ambigus. L'élève, entraîné sur ces probabilités,
-acquiert implicitement cette sagesse.
-
-\vspace{4pt}
-
-\noindent\textbf{Distillation pour le déploiement mobile CKD (Edge AI).}
-Des médecins itinérants dans des zones rurales disposent de simples tablettes
-sans connexion cloud. Déployer un XGBoost de 300 arbres est impossible (ressources
-insuffisantes). La solution:
-
-\begin{enumerate}
-  \item \textbf{Professeur}: l'XGBoost est entraîné sur les 400 cas CKD en
-  laboratoire. Il génère des probabilités molles pour chaque patient.
-  \item \textbf{Élève}: un arbre CART de profondeur~4 (quelques kilo-octets,
-  visualisable en entier) est entraîné à reproduire ces probabilités molles.
-  \item \textbf{Résultat}: l'élève est embarqué sur la tablette. Il est
-  transparent (le médecin peut inspecter visuellement chaque n\oe ud de l'arbre),
-  rapide, et bien plus précis qu'un arbre entraîné directement sur les données
-  brutes, car il bénéficie de la sagesse de l'ensemble professeur.
-\end{enumerate}
-
-\vspace{4pt}
-
-\begin{table}[h]
-\centering
-\caption{Synthèse des stratégies d'explicabilité pour les ensembles}
-\label{tab:strategies_xai}
-\renewcommand{\arraystretch}{1.45}
-\begin{tabularx}{\textwidth}{lXXl}
-\toprule
-\textbf{Stratégie} & \textbf{Portée} & \textbf{Avantage principal} & \textbf{Limite} \\
-\midrule
-TreeSHAP & Locale + Globale & Fondements mathématiques stricts, exact pour les arbres & Lent sur très grands ensembles \\
-LIME & Locale & Rapide, agnostique & Instable, approximatif \\
-SIRUS & Globale & Règles lisibles par des humains & Perte de nuances non linéaires \\
-Distillation & Globale & Modèle transparent autonome & Peut manquer la précision du professeur \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\vspace{8pt}
-
-% ═══════════════════════════════════════════════════════════════════════════════
-\subsection{Compromis Performance–Compréhension}
-\label{sec:compromis}
-
-\noindent
-La conception d'un modèle d'ensemble est un exercice d'équilibre: maximiser
-la précision prédictive \textbf{et} maximiser la compréhensibilité sont deux
-objectifs qui peuvent entrer en conflit. Ce compromis, longtemps perçu comme
-inévitable, est aujourd'hui beaucoup mieux compris --- et partiellement dépassé.
-
-% ─── 5.4.1 ────────────────────────────────────────────────────────────────────
-\subsubsection{Le front de Pareto: visualiser le compromis}
-
-\begin{definition}{Optimisation multi-objectif et front de Pareto}
-Lorsqu'on cherche simultanément à minimiser deux objectifs antagonistes (ici:
-erreur de prédiction \emph{et} opacité), on ne trouve pas \emph{un} modèle optimal
-mais une \textbf{courbe de solutions optimales}: le \textbf{front de Pareto}.
-Sur ce front, améliorer un objectif dégrade nécessairement l'autre.
-\end{definition}
-
-\noindent
-Concrètement: chaque point du front de Pareto correspond à un ensemble entraîné
-avec un certain réglage de ses hyperparamètres. On peut parcourir ce front en
-ajustant des paramètres tels que la profondeur maximale des arbres, le nombre
-de variables autorisées, ou des contraintes de monotonie sur certaines variables.
-
-L'objectif mathématique de cette optimisation est de minimiser conjointement
-plusieurs critères:
+La stabilité de SIRUS est mesurée par l'indice de Dice-Sørensen entre deux ensembles
+de règles $\mathcal{R}^{(1)}$ et $\mathcal{R}^{(2)}$ générés à partir de deux tirages
+indépendants du même jeu de données~:
 
 \begin{equation}
-  \min_{\lambda} \;\Big(
-    \underbrace{\text{Erreur de généralisation}}_{\text{performance}},\;
-    \underbrace{N_F}_{\text{nb de variables}},\;
-    \underbrace{N_I}_{\text{nb d'interactions}},\;
-    \underbrace{N_{NM}}_{\text{effets non monotones}}
-  \Big)
-  \label{eq:pareto}
+  \mathrm{DSC}(\mathcal{R}^{(1)}, \mathcal{R}^{(2)}) = \frac{2\,|\mathcal{R}^{(1)} \cap \mathcal{R}^{(2)}|}{|\mathcal{R}^{(1)}| + |\mathcal{R}^{(2)}|}
+  \label{eq:dice_sorensen}
 \end{equation}
 
-\noindent
-Les trois derniers termes mesurent l'interprétabilité:
+Les études empiriques montrent que SIRUS atteint un DSC supérieur à 0.95 (contre moins
+de 0.5 pour les extracteurs classiques), tout en préservant une précision prédictive
+asymptotiquement proche de la forêt aléatoire d'origine.
 
+\paragraph{Exemple (SIRUS pour le diagnostic médical).}
+Appliqué à un jeu de données de diagnostic cardiaque (variables~: âge, pression artérielle,
+taux de cholestérol, fréquence cardiaque maximale), SIRUS extrait typiquement un ensemble
+de 8 à 12 règles du type~:
 \begin{itemize}
-  \item $N_F$ (\emph{parcimonie des variables}): un modèle n'utilisant que
-  3 variables est plus compréhensible qu'un modèle en utilisant 20.
-  \item $N_I$ (\emph{parcimonie des interactions}): moins les variables
-  interagissent ensemble, plus le modèle se comporte comme une somme de
-  contributions indépendantes --- ce qui est facile à expliquer.
-  \item $N_{NM}$ (\emph{effets non monotones}): les humains appréhendent
-  mieux les relations monotones. On peut par exemple forcer le modèle à
-  respecter: ``plus la pression artérielle est élevée, plus le risque
-  rénal est grand'.
+  \item \textit{SI âge $>$ 55 ET cholestérol $>$ 240 ALORS risque élevé (poids~: 0.31)}
+  \item \textit{SI fréquence\_max $\leq$ 120 ET pression\_art $>$ 140 ALORS risque élevé (poids~: 0.24)}
 \end{itemize}
+Un cardiologue peut valider chacune de ces règles médicalement, chose impossible avec les
+500 arbres de la Random Forest sous-jacente.
 
-% ─── 5.4.2 ────────────────────────────────────────────────────────────────────
-\subsubsection{Quantifier l'interprétabilité: les métriques de fidélité et stabilité}
+\subsubsection{Les architectures Glass-Box : transparence par conception}
 
-Pour comparer objectivement des méthodes d'explicabilité, il faut des métriques
-précises. Les deux plus importantes sont:
+\paragraph{Les Explainable Boosting Machines (EBM).}
 
-\subsubsection*{Fidélité (\emph{Fidelity})}
-
-La fidélité mesure si l'explication reflète vraiment le comportement interne
-du modèle. On l'évalue par ``suppression progressive des variables'
-(\emph{pixel flipping} ou \emph{AUC deletion}):
-
-\begin{enumerate}
-  \item On supprime les variables dans l'ordre décroissant de leur importance
-  SHAP (les plus importantes en premier).
-  \item Si SHAP est fidèle, la performance du modèle doit \textbf{chuter
-  brutalement} dès qu'on retire les premières variables.
-\end{enumerate}
-
-\noindent
-Une fidélité élevée confirme que SHAP identifie bien les variables réellement
-utilisées par la boîte noire.
-
-\subsubsection*{Stabilité (\emph{Robustness})}
-
-La stabilité mesure si l'explication reste cohérente face à de légères variations
-des données. On ajoute un bruit infime aux données du patient et on vérifie que
-le classement des variables importantes ne change pas radicalement.
-
-\begin{table}[h]
-\centering
-\caption{Stabilité de SHAP vs LIME face au bruit (coefficient de Jaccard)}
-\label{tab:stabilite}
-\renewcommand{\arraystretch}{1.4}
-\begin{tabularx}{\textwidth}{lXXX}
-\toprule
-\textbf{Jeu de données} & \textbf{Top-k vars} & \textbf{Stabilité SHAP} & \textbf{Stabilité LIME} \\
-\midrule
-Iris (faible dim.) & $k=2$ & 0.950 (très bon) & 1.000 (parfait) \\
-Diabetes (haute dim.) & $k=3$ & 0.667 (fragile) & 1.000 (apparent) \\
-\bottomrule
-\multicolumn{4}{l}{\small \textit{Note: La stabilité LIME de 1.000 sur Diabetes peut être un artefact de son ajustement linéaire trop rigide.}} \\
-\end{tabularx}
-\end{table}
-
-\begin{attention}
-\textbf{L'illusion de transparence.} Une étude marquante a démontré qu'un
-data scientist malveillant peut concevoir un modèle d'ensemble discriminatoire
-(par exemple, biaisé selon l'origine ethnique) tout en forçant LIME et SHAP
-à afficher des explications parfaitement équitables en apparence. Les méthodes
-post-hoc ne sont donc pas infaillibles: dans des contextes adversariaux,
-elles peuvent générer un \emph{paravent} de transparence cachant un biais réel.
-\end{attention}
-
-% ─── 5.4.3 ────────────────────────────────────────────────────────────────────
-\subsubsection{Les modèles hybrides: fusionner performance et transparence}
-
-Une approche élégante pour naviguer sur le front de Pareto consiste à concevoir
-un modèle dont la prédiction est explicitement décomposée en deux parties:
+L'\textbf{Explainable Boosting Machine} (EBM) constitue l'avancée paradigmatique majeure~:
+un modèle aussi performant qu'un Gradient Boosting, mais intrinsèquement interprétable.
+L'EBM s'inscrit dans le cadre des Modèles Additifs Généralisés avec Interactions (GA2M)
+dont la fonction d'hypothèse est~:
 
 \begin{equation}
-  h(x) \;=\; \underbrace{f^*(x)}_{\text{partie transparente}} \;+\; \underbrace{g^*(x)}_{\text{partie boîte noire}}
-  \label{eq:double_penalite}
-\end{equation}
-
-\noindent
-\begin{itemize}
-  \item $f^*(x)$: une fonction simple et lisible (régression linéaire, quelques
-  règles) qui capture les relations les plus importantes et les plus claires.
-  \item $g^*(x)$: une fonction complexe (résidu d'une forêt, réseau de neurones)
-  qui absorbe les non-linéarités résiduelles pour booster la précision.
-\end{itemize}
-
-\noindent
-L'idée est de \textbf{forcer} la majeure partie du signal explicatif dans $f^*$
-et de cantonner $g^*$ à un rôle de correction mineure. On y parvient en pénalisant
-plus fortement la complexité de $g^*$ que celle de $f^*$ lors de l'entraînement.
-
-% ─── 5.4.4 ────────────────────────────────────────────────────────────────────
-\subsubsection{Les EBM: des ensembles intrinsèquement transparents}
-
-L'\textbf{Explainable Boosting Machine} (EBM), développée par Microsoft Research,
-représente l'état de l'art en matière de modèles \emph{Glass-Box}: des modèles
-intrinsèquement interprétables mais aussi performants que les boîtes noires.
-
-L'équation d'un EBM est:
-
-\begin{equation}
-  g\!\left(\mathbb{E}[y]\right) \;=\; \beta_0
-  \;+\; \sum_{j=1}^{n} f_j(x_j)
-  \;+\; \sum_{i \neq j} f_{ij}(x_i, x_j)
+  g\!\left(\mathbb{E}[y]\right) = \beta_0 + \sum_{j=1}^{d} f_j(x_j) + \sum_{i \neq j} f_{ij}(x_i, x_j)
   \label{eq:ebm}
 \end{equation}
 
-\noindent
-où:
-\begin{itemize}
-  \item $f_j(x_j)$ est une fonction lisse apprise pour la variable $j$
-  \textbf{seule}: on peut la visualiser comme une courbe 2D montrant l'effet
-  de cette variable sur la prédiction.
-  \item $f_{ij}(x_i, x_j)$ capture l'interaction \textbf{entre deux variables}:
-  une carte de chaleur 3D.
-\end{itemize}
+où $g$ est la fonction de lien (logit pour la classification), $f_j(x_j)$ capture l'effet
+univarié de la variable $j$, et $f_{ij}(x_i, x_j)$ modélise les interactions paires
+les plus significatives.
 
-\noindent
-La clé: chaque $f_j$ est apprise par un Gradient Boosting cyclique sur une
-seule variable à la fois, avec des arbres minuscules (\emph{stumps}). Cela
-garantit que la contribution de chaque variable reste \textbf{isolable et
-visualisable}.
+\textbf{La clé de l'interprétabilité~: le Boosting cyclique (round-robin).}
+Contrairement au Gradient Boosting classique qui entraîne des arbres multivariés profonds,
+l'EBM entraîne séquentiellement un micro-arbre de profondeur 1 (stump) pour une seule
+variable à la fois~:
 
-\begin{table}[h]
+\begin{algorithm}[H]
+\caption{Entraînement d'une Explainable Boosting Machine}
+\begin{algorithmic}[1]
+\Require Données $(X, \mathbf{y})$, taux $\eta$ très faible, nombre d'itérations $T$
+\Ensure Fonctions de forme $\{f_j\}_{j=1}^{d}$
+\State Initialiser $F(\mathbf{x}) \leftarrow \bar{y}$ (prédiction constante)
+\State Initialiser $f_j \leftarrow 0$ pour tout $j$
+\For{$t = 1$ \textbf{à} $T$}
+    \State Calculer les résidus~: $r_i \leftarrow y_i - F(\mathbf{x}_i)$ pour tout $i$
+    \ForEach{variable $j \in \{1, \ldots, d\}$}
+        \State Entraîner un stump $h_j^{(t)}$ sur $(x_j, r)$ uniquement
+        \Comment{Un seul axe à la fois}
+        \State Mettre à jour~: $f_j \leftarrow f_j + \eta \cdot h_j^{(t)}$
+        \State Mettre à jour les résidus~: $r_i \leftarrow r_i - \eta \cdot h_j^{(t)}(x_{ij})$
+    \EndFor
+\EndFor
+\State \Return $\{f_j\}_{j=1}^{d}$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Pourquoi cela garantit l'interprétabilité~:} Après convergence, chaque fonction
+$f_j(x_j)$ est une fonction univariée exacte, visualisable sous forme d'un graphique 2D.
+La contribution de la variable $j$ à la prédiction d'une instance $\mathbf{x}_0$ est exactement
+$f_j(x_{0j})$, sans aucune approximation.
+
+\begin{table}[H]
 \centering
-\caption{Performance comparée (AUROC) des modèles selon leur niveau de transparence}
-\label{tab:ebm_perf}
-\renewcommand{\arraystretch}{1.45}
-\begin{tabularx}{\textwidth}{lXXX}
+\caption{Comparaison entre Gradient Boosting (XGBoost) et EBM}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{>{\bfseries}p{3.8cm} p{4.5cm} p{4.5cm}}
 \toprule
-\textbf{Domaine} & \textbf{Régression logistique} & \textbf{XGBoost (boîte noire)} & \textbf{EBM (Glass-Box)} \\
+Métrique & Gradient Boosting (XGBoost) & Explainable Boosting Machine \\
 \midrule
-Revenus (Adult) & 0.907 & 0.927 & \textbf{0.928} \\
-Cardio (Heart Disease) & 0.895 & 0.851 & \textbf{0.898} \\
-Cancer (Breast) & 0.995 & 0.992 & \textbf{0.995} \\
-Fraude (Credit Fraud) & 0.979 & 0.981 & \textbf{0.981} \\
+Topologie & Arbres profonds multivariés & Stumps univariés (round-robin) \\
+Interactions & Illimitées et enchevêtrées & Limitées aux paires significatives \\
+Explicabilité & Post-hoc (TreeSHAP requis) & Intrinsèque (fonctions 2D/3D) \\
+Fidélité de l'explication & Approximative & Exacte (100\% fidélité) \\
+Performance (AUC) & Référence & Statistiquement indiscernable \\
 \bottomrule
-\multicolumn{4}{l}{\small \textit{Source: Microsoft Research, InterpretML. L'EBM égale ou dépasse XGBoost tout en restant transparente.}} \\
-\end{tabularx}
+\end{tabular}
+\label{tab:xgboost_vs_ebm}
 \end{table}
 
-\begin{pointcle}
-Ces résultats empiriques réfutent le \textbf{mythe du compromis absolu}. Sur des
-données structurées (tableaux), il n'y a pas nécessairement à choisir entre
-performance et transparence. Les EBM atteignent la précision de XGBoost tout en
-restant totalement explicables: chaque variable a une contribution visualisable
-et auditée.
-\end{pointcle}
+\paragraph{Distillation de connaissances (Knowledge Distillation).}
 
-% ─── 5.4.5 ────────────────────────────────────────────────────────────────────
-\subsubsection{Cas fil rouge: atteindre l'optimum de Pareto pour le déploiement CKD}
+Lorsqu'un modèle opaque préexistant ne peut être remplacé par un EBM, la
+\textbf{distillation de connaissances} (Hinton et al., 2015) permet de transférer
+le savoir du modèle opaque vers un modèle transparent.
 
-\noindent\textbf{De la boîte noire au modèle cliniquement déployable.}
+L'idée clé consiste à substituer les étiquettes binaires $y \in \{0, 1\}$ par les
+\textbf{probabilités molles} (soft labels) produites par le modèle enseignant (teacher)~:
+au lieu d'apprendre $y = 1$, le modèle étudiant (student) apprend
+$[p_0 = 0.15, p_1 = 0.85]$. Ces probabilités molles encapsulent les
+\textit{connaissances sombres} (dark knowledge) du modèle~: sa confiance, la similarité
+qu'il perçoit entre les classes, la complexité locale de la frontière de décision.
 
-\noindent\textbf{Situation initiale.} L'équipe entraîne un XGBoost sur les 24
-biomarqueurs CKD. Le modèle atteint une précision de \textbf{99.2\,\%} (AUC~$\approx$~1.0),
-mais échoue aux tests de parcimonie: il utilise des interactions si profondes que
-le corps médical le rejette, craignant des artefacts non causaux.
+La fonction de perte de la distillation est~:
 
-\vspace{4pt}
+\begin{equation}
+  \mathcal{L}_{\text{dist}} = (1-\alpha)\,\mathcal{L}_{\text{CE}}(y, \hat{y}_s)
+  + \alpha\,T^2\,\mathcal{L}_{\text{KL}}\!\left(\sigma\!\left(\frac{z_t}{T}\right),\, \sigma\!\left(\frac{z_s}{T}\right)\right)
+  \label{eq:distillation}
+\end{equation}
 
-\noindent\textbf{Application de l'optimisation de Pareto.} L'équipe intègre
-des pénalités sévères sur $N_F$ (nombre de variables) et $N_{NM}$ (monotonie forcée
-pour la pression artérielle et l'albumine). L'algorithme évolutif parcourt
-l'espace des hyperparamètres et écarte tout ensemble utilisant plus de 5~variables.
+où $z_t$ et $z_s$ sont les logits du teacher et du student, $T$ est la \textit{température}
+(hyperparamètre contrôlant la douceur des distributions), $\sigma$ est la fonction softmax,
+$\alpha$ est un coefficient de pondération, et $\mathcal{L}_{\text{KL}}$ est la divergence
+de Kullback-Leibler.
 
-\vspace{4pt}
-
-\noindent\textbf{Résultat sur le front de Pareto.}
-Le système isole un XGBoost contraint qui ne s'appuie que sur
-\textbf{3 variables}:
+\paragraph{Exemple (Distillation d'une forêt en un arbre décisionnel).}
+Un hôpital dispose d'une Random Forest à 300 arbres pour prédire les réadmissions
+hospitalières (AUC = 0.89). Elle ne peut être remplacée car elle est intégrée dans
+un système critique. En appliquant la distillation~:
 \begin{enumerate}
-  \item Le taux d'hémoglobine
-  \item La gravité spécifique de l'urine
-  \item La présence d'hypertension
+  \item La forêt génère des probabilités molles $[0.78, 0.22]$, $[0.34, 0.66]$, etc.
+        pour chaque patient du jeu d'entraînement.
+  \item Un arbre de décision de profondeur 5 est entraîné sur ces probabilités molles.
+  \item L'arbre résultant atteint AUC = 0.86 (vs 0.89 de la forêt) mais est
+        entièrement lisible par un médecin~: 5 niveaux de règles simples.
 \end{enumerate}
 
-\noindent
-Ce modèle atteint une précision de \textbf{99.2\,\%} (écart-type de 0.8\,\% sur
-validation croisée à 5 plis): identique à la version utilisant les 24 variables.
-Les bénéfices sont considérables:
+\subsubsection{Sélection Dynamique de Classifieurs (DCS/DES) et explicabilité contextuelle}
 
-\begin{itemize}
-  \item \textbf{Coûts réduits}: seulement 3 analyses à réaliser au lieu de 24.
-  Accessible aux zones médicales sous-dotées.
-  \item \textbf{Confiance clinique}: les 3 variables sont des marqueurs CKD
-  reconnus. Les explications TreeSHAP deviennent claires et incontestables.
-  \item \textbf{Conformité légale}: un modèle mathématiquement audité qui
-  n'utilise aucune variable fallacieuse est juridiquement défendable face
-  au RGPD et aux normes FDA.
-\end{itemize}
+\paragraph{Principe de la sélection dynamique.}
 
-\begin{center}
+Les approches \textbf{DCS} (Dynamic Classifier Selection) et \textbf{DES} (Dynamic Ensemble
+Selection) adoptent une philosophie radicalement différente~: plutôt que de combiner tous
+les classifieurs pour chaque instance, elles identifient dynamiquement, pour chaque
+nouvelle instance $\mathbf{x}_0$, les classifieurs localement les plus compétents.
+
+L'algorithme définit une \textbf{Région de Compétence} (RoC) en projetant $\mathbf{x}_0$ dans
+l'espace de validation DSEL et en identifiant ses $k$ plus proches voisins~:
+
+\begin{equation}
+  \mathrm{RoC}(\mathbf{x}_0) = \bigl\{\mathbf{x}_{(1)}, \ldots, \mathbf{x}_{(k)}\bigr\}
+  \subset \mathcal{D}_{\text{val}}
+  \label{eq:roc}
+\end{equation}
+
+La compétence d'un classifieur $h_m$ sur cette région est évaluée par son accuracy locale~:
+
+\begin{equation}
+  \mathrm{Comp}(h_m, \mathbf{x}_0) = \frac{1}{k} \sum_{i=1}^{k}
+  \mathbf{1}\!\left[h_m(\mathbf{x}_{(i)}) = y_{(i)}\right]
+  \label{eq:competence}
+\end{equation}
+
+\begin{algorithm}[H]
+\caption{Overall Local Accuracy (OLA) — DCS avec explicabilité}
+\begin{algorithmic}[1]
+\Require Instance $\mathbf{x}_0$, pool de classifieurs $\{h_m\}_{m=1}^M$, DSEL, $k$
+\Ensure Prédiction $\hat{y}$ et justification contextuelle
+\State Trouver $\mathrm{RoC}(\mathbf{x}_0) = k\text{-NN}(\mathbf{x}_0, \mathcal{D}_{\text{val}})$
+\ForEach{classifieur $h_m$}
+    \State Calculer $\mathrm{Comp}(h_m, \mathbf{x}_0)$ via l'équation \eqref{eq:competence}
+\EndFor
+\State Sélectionner $h^* = \arg\max_m \mathrm{Comp}(h_m, \mathbf{x}_0)$
+\State $\hat{y} \leftarrow h^*(\mathbf{x}_0)$
+\State \Return $\hat{y}$, $h^*$ (expert sélectionné), $\mathrm{RoC}(\mathbf{x}_0)$ (justification)
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Avantages pour l'explicabilité.}
+
+La sélection dynamique offre une propriété explicative unique~: si le pool de classifieurs
+est composé de modèles interprétables (arbres peu profonds, régressions logistiques),
+le système global hérite de cette interprétabilité \textit{par héritage}. Pour justifier
+la décision sur $\mathbf{x}_0$, il suffit d'expliquer~:
+\begin{enumerate}
+  \item Quel expert $h^*$ a été sélectionné~;
+  \item Pourquoi il a été sélectionné (ses $k$ voisins historiques dans RoC)~;
+  \item Quel est le raisonnement de $h^*$ (si $h^*$ est interprétable).
+\end{enumerate}
+C'est ce qu'on appelle le \textbf{raisonnement par analogie} (Case-Based Reasoning)~:
+la décision est justifiée par des exemples historiques similaires, ce qui est naturellement
+compréhensible par un expert métier.
+
+\subsubsection{XStacking : le méta-apprentissage guidé par l'explication}
+
+\paragraph{L'opacité fondamentale du Stacking classique.}
+
+Dans un Stacking conventionnel, les prédictions des modèles de base constituent les
+seules entrées du méta-apprenant. Si l'on dispose de $K$ modèles de base, le méta-apprenant
+opère dans un espace de dimension $K$~: $\mathbf{z} = (\hat{y}_1, \ldots, \hat{y}_K)$.
+L'\textbf{espace des variables d'origine est totalement écrasé}~: une méthode XAI appliquée
+au méta-apprenant peut seulement dire \textit{«~le modèle A a contribué à 40\%~»}, mais
+pas \textit{pourquoi}, ni via quelle variable d'entrée.
+
+\paragraph{Architecture XStacking.}
+
+\textbf{XStacking} résout ce problème en enrichissant l'espace du méta-apprenant avec
+les vecteurs d'importance des caractéristiques générés pour chaque modèle de base~:
+
+\begin{equation}
+  \mathbf{z}_{\text{XStacking}} = \bigl[\hat{y}_1, \ldots, \hat{y}_K,\;
+  \phi(f_1(\mathbf{x})), \ldots, \phi(f_K(\mathbf{x}))\bigr]
+  \label{eq:xstacking}
+\end{equation}
+
+où $\phi(f_k(\mathbf{x})) = (\phi_1^{(k)}, \ldots, \phi_p^{(k)})$ est le vecteur des valeurs
+SHAP du modèle $k$ sur l'instance $\mathbf{x}$. L'espace d'apprentissage du méta-modèle passe
+de dimension $K$ à dimension $K + K \times d = K(1+d)$ (ou $K \times d$ si les prédictions
+brutes sont omises).
+
+\begin{table}[H]
+\centering
+\caption{Comparaison Stacking conventionnel vs XStacking}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{>{\bfseries}p{4cm} p{4.5cm} p{4.5cm}}
+\toprule
+Propriété & Stacking Conventionnel & Framework XStacking \\
+\midrule
+Entrées Niveau 1 & Prédictions $(\hat{y}_1, \ldots, \hat{y}_K)$ & Vecteurs SHAP + prédictions \\
+Dimension méta-espace & $K$ & $K(1 + d)$ \\
+Lien variables d'origine & Coupé (out-of-fold) & Propagé nativement \\
+Explicabilité résultante & Post-hoc, faible traçabilité & Intrinsèque, auditable \\
+Bénéfice secondaire & Réduction de variance & Élimination biais par corrélations fallacieuses \\
+\bottomrule
+\end{tabular}
+\label{tab:stacking_vs_xstacking}
+\end{table}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\subsection{Compromis Performance–Compréhension}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsubsection{Le mythe du compromis strict et sa déconstruction empirique}
+
+Pendant longtemps, l'apprentissage automatique a été dominé par l'axiome suivant~:
+\textit{un modèle plus performant est nécessairement moins interprétable}. Cet axiome
+est aujourd'hui empiriquement réfuté par plusieurs résultats convergents.
+
+\paragraph{L'EBM comme preuve de concept.}
+
+Des évaluations extensives sur des jeux de données critiques (prédiction de faillite
+bancaire, diagnostic de l'infarctus du myocarde, prédiction de risques géologiques)
+montrent que les EBM atteignent un AUC statistiquement indiscernable de celui de XGBoost~:
+
+\begin{table}[H]
+\centering
+\caption{Comparaison AUC — EBM vs XGBoost sur des jeux de données réels}
 \renewcommand{\arraystretch}{1.4}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Modèle} & \textbf{Variables} & \textbf{Précision} & \textbf{Transparence} \\
+Jeu de données & XGBoost & EBM & Différence \\
 \midrule
-XGBoost (24 vars) & 24 & 99.2\,\% & Nulle (boîte noire) \\
-XGBoost-SHAP post-hoc & 24 & 99.2\,\% & Partielle (instable) \\
-\textbf{XGBoost-Pareto (3 vars)} & \textbf{3} & \textbf{99.2\,\%} & \textbf{Élevée (stable)} \\
-EBM (3 vars distillées) & 3 & 98.9\,\% & \textbf{Totale (Glass-Box)} \\
+Défaut de crédit (Taiwan) & 0.779 & 0.778 & $-0.001$ \\
+Diagnostic cardiaque (UCI) & 0.921 & 0.918 & $-0.003$ \\
+Mortalité soins intensifs & 0.862 & 0.859 & $-0.003$ \\
+Détection fraude bancaire & 0.974 & 0.971 & $-0.003$ \\
 \bottomrule
 \end{tabular}
-\end{center}
+\label{tab:auc_comparison}
+\end{table}
 
-\noindent
-Ce résultat illustre le message central de ce chapitre: intégrer l'explicabilité
-dès la conception du modèle n'est pas un frein à la performance, mais le
-\textbf{catalyseur} permettant au Machine Learning de franchir le fossé entre la
-recherche en laboratoire et le déploiement clinique réel.
+Ces différences sont statistiquement non significatives et bien inférieures aux variations
+dues aux hyperparamètres ou à la variabilité d'échantillonnage. Le compromis n'est donc
+pas une loi absolue, mais un artefact des architectures d'apprentissage antérieures.
+
+\subsubsection{L'effet Rashomon et la multiplicité des modèles équivalents}
+
+\paragraph{Définition formelle de l'ensemble de Rashomon.}
+
+Le phénomène de \textbf{multiplicité des modèles} (\textit{Model Multiplicity} ou
+\textit{Rashomon Effect}), formalisé par Leo Breiman, constitue l'une des découvertes les
+plus déstabilisantes de l'apprentissage moderne~: dans des espaces à haute dimension,
+il existe souvent un très grand nombre de modèles statistiquement équivalents, mais
+reposant sur des logiques décisionnelles totalement incompatibles.
+
+\paragraph{Définition (Ensemble de Rashomon $\mathcal{R}(\epsilon)$).}
+Soit $f^*$ le modèle optimal dans l'espace des hypothèses $\mathcal{F}$, de perte empirique
+$\mathcal{L}(f^*)$. L'\textbf{ensemble de Rashomon} est défini par~:
+\begin{equation}
+  \mathcal{R}(\epsilon) = \bigl\{f \in \mathcal{F} \;\mid\; \mathcal{L}(f) \leq \mathcal{L}(f^*) + \epsilon\bigr\}
+  \label{eq:rashomon}
+\end{equation}
+Tous les modèles de $\mathcal{R}(\epsilon)$ ont un pouvoir de généralisation pratiquement
+identique, mais peuvent s'appuyer sur des ensembles de variables et des logiques de décision
+radicalement différents.
+
+\paragraph{Implication pour l'explicabilité~: l'incertitude interprétative.}
+
+Appliquer SHAP ou un PDP (Partial Dependence Plot) sur le \textit{meilleur modèle unique}
+génère un \textbf{biais cognitif dangereux}~: cela donne l'illusion que le profil causal
+obtenu est \textit{la seule vérité} sous-jacente aux données. Or, des centaines d'autres
+modèles de performances équivalentes pourraient produire des explications contradictoires.
+
+\textbf{La solution~: le Rashomon PDP.} On agrège les Graphiques de Dépendance Partielle
+(PDP) sur l'ensemble $\mathcal{R}(\epsilon)$. Cela produit~:
+
+\begin{itemize}
+  \item \textbf{Stabilité concordante~:} si l'effet d'une variable $x_j$ est positif
+        sur la quasi-totalité des modèles de $\mathcal{R}(\epsilon)$, l'explication est
+        certifiée robuste et indépendante du choix d'optimisation.
+
+  \item \textbf{Désaccord interne~:} si les PDP sont très dispersés entre les modèles
+        de $\mathcal{R}(\epsilon)$, le système signale explicitement qu'il n'existe
+        \textit{pas de consensus} dans les données sur le rôle de cette variable. Toute
+        conclusion causale serait une sur-interprétation.
+\end{itemize}
+
+\paragraph{Exemple (Rashomon PDP en oncologie).}
+Un modèle de prédiction de survie au cancer du sein est entraîné sur des variables
+biologiques (expression génique, âge, stade). Le Rashomon PDP révèle que pour
+la variable \textit{âge}~:
+\begin{itemize}
+  \item 95\% des modèles de $\mathcal{R}(0.01)$ concordent~: l'âge augmente le risque
+        au-delà de 60 ans. $\rightarrow$ Explication certifiée robuste, actionnable cliniquement.
+  \item Pour la variable \textit{marqueur HER2}~: 50\% des modèles indiquent un effet
+        protecteur, 50\% un effet délétère. $\rightarrow$ Aucune conclusion causale ne doit
+        être tirée~; une étude clinique dédiée est nécessaire.
+\end{itemize}
+
+\subsubsection{Le Consensus XAI~: agréger les explications pour réduire leur variance}
+
+\paragraph{La méthode NormEnsembleXAI.}
+
+Tout comme l'apprentissage d'ensemble stabilise les prédictions, le
+\textbf{Consensus XAI} stabilise les explications en agrégeant les vecteurs d'importance
+produits par différentes méthodes ou différentes exécutions. Le framework
+\textbf{NormEnsembleXAI} structure ce processus en trois étapes~:
+
+\begin{algorithm}[H]
+\caption{NormEnsembleXAI — agrégation d'explications plurielles}
+\begin{algorithmic}[1]
+\Require Matrices d'explications $\{\Phi^{(1)}, \ldots, \Phi^{(K)}\}$ de sources distinctes
+\Ensure Explication consensuelle stable $\bar{\Phi}$
+
+\State \textbf{Étape 1 — Normalisation par méthode~:}
+\ForEach{matrice $\Phi^{(k)}$}
+    \State Appliquer une standardisation robuste~:
+    \State $\tilde{\phi}^{(k)}_j \leftarrow \dfrac{\phi^{(k)}_j - \mathrm{median}(\Phi^{(k)})}
+    {\mathrm{P}_{99}(\Phi^{(k)}) - \mathrm{P}_{01}(\Phi^{(k)})}$
+    \Comment{Insensible aux valeurs aberrantes}
+\EndFor
+
+\State \textbf{Étape 2 — Harmonisation ordinale~:}
+\State Vérifier que la normalisation préserve les ordres de rang entre variables
+
+\State \textbf{Étape 3 — Agrégation~:}
+\State Calculer le score de fiabilité~: $s_k = \mathrm{corr}(\Phi^{(k)}, f(\mathbf{x}))$
+\State $\bar{\Phi} \leftarrow \sum_{k=1}^{K} s_k \cdot \tilde{\Phi}^{(k)} \Big/ \sum_{k=1}^K s_k$
+
+\State \Return $\bar{\Phi}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Explanation Consistency Training (ECT).}
+
+L'\textbf{Explanation Consistency Training} (ECT) va encore plus loin~: au lieu d'agréger
+les explications après l'entraînement, ECT intègre la \textit{cohérence explicative} directement
+dans la fonction de perte lors de l'entraînement. La perte totale est~:
+
+\begin{equation}
+  \mathcal{L}_{\text{ECT}} = \mathcal{L}_{\text{pred}} + \lambda_{\text{cons}} \cdot
+  \frac{1}{N}\sum_{i=1}^{N} \left\|\phi(f, \mathbf{x}_i) - \phi(f, \mathbf{x}_i + \epsilon_i)\right\|^2
+  \label{eq:ect}
+\end{equation}
+
+Le second terme pénalise les modèles dont les explications changent trop fortement sous
+de petites perturbations $\epsilon_i$ des données d'entrée. L'ECT force l'ensemble à
+converger non seulement vers une \textit{exactitude unanime} (même prédiction), mais
+surtout vers une \textit{cohérence causale} (même justification). Des études sur des
+données médicales (MIMIC-IV) montrent des améliorations de cohérence supérieures à
+120\% sans dégradation significative de la performance prédictive.
+
+\subsubsection{Guide de décision~: quelle stratégie adopter ?}
+
+\begin{table}[H]
+\centering
+\caption{Guide de sélection de la stratégie d'explicabilité selon le contexte}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{p{3.5cm} p{2.5cm} p{2.5cm} p{3.5cm}}
+\toprule
+\textbf{Contexte} & \textbf{Contrainte principale} & \textbf{Méthode recommandée} & \textbf{Justification} \\
+\midrule
+Nouveau projet, domaine critique & Performance + légalité & EBM (GA2M) & Interprétabilité native, AUC comparable \\
+Modèle existant, irremplaçable & Compatibilité & TreeSHAP + Distillation & Analyse locale précise \\
+Audit réglementaire & Stabilité & SIRUS & Règles stables (DSC $>$ 0.95) \\
+Décision sur instances rares & Contexte local & DCS/DES & Expertise locale certifiée \\
+Haute dimensionnalité, $p > 100$ & Cohérence globale & Consensus XAI + Rashomon & Certifie la robustesse causale \\
+Stacking existant & Traçabilité & XStacking & Lien bout-en-bout restauré \\
+\bottomrule
+\end{tabular}
+\label{tab:guide_decision}
+\end{table}
 
 \subsection{Conclusion}
 
-Ce chapitre a exploré la tension entre performance et explicabilité dans les
-méthodes d'ensemble. Voici les points à retenir:
+Ce chapitre a mis en lumière que l'opacité des ensembles de classifieurs n'est pas
+un simple défaut technique, mais la conséquence directe des mécanismes mathématiques
+qui fondent leur supériorité~: explosion de la dimension VC, exploitation délibérée
+de la diversité (identité de Krogh-Vedelsby), accumulation de corrections résiduelles
+(Boosting).
 
-\vspace{4pt}
+Face à cette complexité, l'ingénierie de l'explicabilité a développé un spectre de
+solutions complémentaires~:
 
 \begin{enumerate}
-  \item \textbf{La boîte noire est un problème réel.} Agréger des modèles simples
-  crée une opacité dont les conséquences sont légales (RGPD), éthiques (biais cachés)
-  et cliniques (rejet par les praticiens).
+  \item \textbf{Post-hoc analytique~:} TreeSHAP calcule des valeurs de Shapley exactes
+        en temps polynomial, en exploitant la structure des arbres.
 
-  \item \textbf{La complexité se mesure.} La dimension VC, les bornes de
-  généralisation et les métriques de parcimonie permettent de quantifier et de
-  contrôler la complexité d'un ensemble. Maîtriser la complexité améliore à la
-  fois la généralisation et l'explicabilité.
+  \item \textbf{Distillation symbolique~:} SIRUS extrait des règles SI-ALORS stables
+        depuis les forêts aléatoires, sans perte significative de précision.
 
-  \item \textbf{Trois familles de stratégies XAI existent.} TreeSHAP (exact,
-  fondé sur la théorie des jeux), LIME (rapide, approximatif), extraction de règles
-  (globale, lisible par les humains) et distillation (modèle transparent autonome).
+  \item \textbf{Architectures glass-box~:} Les EBM montrent empiriquement qu'interprétabilité
+        et performance peuvent coexister sans compromis significatif.
 
-  \item \textbf{Le compromis n'est pas inévitable.} Sur des données structurées,
-  les modèles Glass-Box (EBM) et les ensembles optimisés par Pareto peuvent
-  atteindre la précision des boîtes noires tout en restant parfaitement explicables.
-  L'explicabilité n'est pas un frein: c'est une condition de déploiement responsable.
+  \item \textbf{Explicabilité contextuelle~:} La sélection dynamique (DCS/DES) offre
+        une justification par analogie, adaptée aux instances localement complexes.
+
+  \item \textbf{Méta-apprentissage transparent~:} XStacking restaure la traçabilité
+        bout-en-bout du Stacking en enrichissant le méta-espace avec les vecteurs SHAP.
+
+  \item \textbf{Robustesse de l'explication~:} Le Consensus XAI et les ensembles de
+        Rashomon quantifient l'incertitude interprétative et certifient la stabilité causale.
 \end{enumerate}
+
+La frontière entre performance et compréhension, longtemps perçue comme infranchissable,
+se révèle être le résultat d'une ingénierie insuffisante plutôt qu'une limite théorique
+absolue. L'avenir des systèmes critiques repose sur des architectures où explicabilité
+et précision se renforcent mutuellement, comme l'illustrent XStacking et les EBM.

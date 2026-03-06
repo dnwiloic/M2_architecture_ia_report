@@ -44,6 +44,10 @@
 
 \usepackage{float}
 \usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\algnewcommand\algorithmicforeach{\textbf{pour chaque}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \textbf{faire}}
 
 % Numérotation des sections en 1, 2, 3 (sans chapitre)
 \renewcommand{\thesection}{\arabic{section}}
